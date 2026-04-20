@@ -1,0 +1,10 @@
+{
+  "name": "apiaibazaar-platform",
+  "private": true,
+  "packageManager": "pnpm@10.6.0",
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --filter web build",
+    "start": "pnpm --filter web start"
+  }
+}
