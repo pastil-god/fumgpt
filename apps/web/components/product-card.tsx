@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { Product } from "@/lib/mock-data";
 import { formatPriceIRR, getDiscountPercent } from "@/lib/mock-data";
@@ -11,7 +12,13 @@ export function ProductCard({ product }: Props) {
     <article className="surface product-card">
       <div className={`product-visual accent-${product.accent}`}>
         {product.imageUrl ? (
-          <img className="product-visual-media" src={product.imageUrl} alt={product.title} />
+          <Image
+            className="product-visual-media"
+            src={product.imageUrl}
+            alt={product.title}
+            fill
+            sizes="(max-width: 840px) 100vw, (max-width: 1160px) 50vw, 33vw"
+          />
         ) : null}
         <span className="product-brand">{product.brand}</span>
         <strong>{product.coverLabel}</strong>

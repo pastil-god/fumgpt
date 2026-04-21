@@ -1,4 +1,5 @@
 export type ProductCategory = "ai-access" | "creative" | "coding" | "professional";
+export type ProductStatus = "active" | "draft" | "archived";
 
 export type Product = {
   id: string;
@@ -18,6 +19,7 @@ export type Product = {
   coverLabel: string;
   accent: "cyan" | "violet" | "amber" | "emerald";
   isFeatured?: boolean;
+  status?: ProductStatus;
   imageUrl?: string;
   videoUrl?: string;
 };

@@ -1,4 +1,6 @@
+import Image from "next/image";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import {
   getCategoryMeta,
@@ -7,18 +9,50 @@ import {
   isDirectVideoFile
 } from "@/lib/content";
 import { formatPriceIRR, getDiscountPercent } from "@/lib/mock-data";
+import { siteConfig } from "@/lib/site";
 import { ProductCard } from "@/components/product-card";
+
+async function resolveParams(
+  params: Promise<{ slug: string }> | { slug: string }
+) {
+  return typeof (params as Promise<{ slug: string }>).then === "function"
+    ? await (params as Promise<{ slug: string }>)
+    : (params as { slug: string });
+}
+
+export async function generateMetadata({
+  params
+}: {
+  params: Promise<{ slug: string }> | { slug: string };
+}): Promise<Metadata> {
+  const resolvedParams = await resolveParams(params);
+  const product = await getStoreProductBySlug(resolvedParams.slug);
+
+  if (!product) {
+    return {
+      title: "محصول پیدا نشد"
+    };
+  }
+
+  return {
+    title: product.title,
+    description: product.shortDescription,
+    openGraph: {
+      title: product.title,
+      description: product.shortDescription,
+      type: "website",
+      url: `${siteConfig.siteUrl}/products/${product.slug}`,
+      images: product.imageUrl ? [{ url: product.imageUrl }] : undefined
+    }
+  };
+}
 
 export default async function ProductDetailPage({
   params
 }: {
   params: Promise<{ slug: string }> | { slug: string };
 }) {
-  const resolvedParams =
-    typeof (params as Promise<{ slug: string }>).then === "function"
-      ? await (params as Promise<{ slug: string }>)
-      : (params as { slug: string });
-
+  const resolvedParams = await resolveParams(params);
   const product = await getStoreProductBySlug(resolvedParams.slug);
 
   if (!product) {
@@ -35,7 +69,13 @@ export default async function ProductDetailPage({
           <div className="surface detail-main">
             <div className={`detail-visual accent-${product.accent}`}>
               {product.imageUrl ? (
-                <img className="detail-visual-media" src={product.imageUrl} alt={product.title} />
+                <Image
+                  className="detail-visual-media"
+                  src={product.imageUrl}
+                  alt={product.title}
+                  fill
+                  sizes="(max-width: 1160px) 100vw, 65vw"
+                />
               ) : null}
               <span>{product.brand}</span>
               <strong>{product.coverLabel}</strong>
@@ -71,9 +111,14 @@ export default async function ProductDetailPage({
               </div>
 
               <div className="btn-row">
-                <button className="btn btn-primary" type="button">
-                  افزودن به سبد خرید
-                </button>
+                <a
+                  className="btn btn-primary"
+                  href={siteConfig.telegram}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  هماهنگی خرید این محصول
+                </a>
                 <Link href="/products" className="btn btn-ghost">
                   بازگشت به فروشگاه
                 </Link>
@@ -103,18 +148,22 @@ export default async function ProductDetailPage({
             <div className="surface side-card">
               <div className="eyebrow">نکات اصلی</div>
               <ul className="feature-list-simple compact">
-                {product.notes.map((note) => (
-                  <li key={note}>{note}</li>
-                ))}
+                {product.notes.length > 0 ? (
+                  product.notes.map((note) => <li key={note}>{note}</li>)
+                ) : (
+                  <li>نکات تکمیلی این محصول بعداً از CMS تکمیل می‌شود.</li>
+                )}
               </ul>
             </div>
 
             <div className="surface side-card">
               <div className="eyebrow">ویژگی‌های محصول</div>
               <ul className="feature-list-simple compact">
-                {product.features.map((feature) => (
-                  <li key={feature}>{feature}</li>
-                ))}
+                {product.features.length > 0 ? (
+                  product.features.map((feature) => <li key={feature}>{feature}</li>)
+                ) : (
+                  <li>ویژگی‌های این محصول هنوز تکمیل نشده‌اند.</li>
+                )}
               </ul>
             </div>
           </aside>
@@ -135,7 +184,7 @@ export default async function ProductDetailPage({
           </div>
         </div>
 
-        {relatedProducts.length > 0 && (
+        {relatedProducts.length > 0 ? (
           <div className="section-stack">
             <div className="section-header">
               <div>
@@ -149,7 +198,7 @@ export default async function ProductDetailPage({
               ))}
             </div>
           </div>
-        )}
+        ) : null}
       </div>
     </section>
   );

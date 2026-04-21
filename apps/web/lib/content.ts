@@ -4,8 +4,10 @@ import {
   getDiscountPercent,
   products as fallbackProducts,
   type Product,
-  type ProductCategory
+  type ProductCategory,
+  type ProductStatus
 } from "@/lib/mock-data";
+import { homePageContent as fallbackHomePageContent, type HomePageContent } from "@/lib/mock-homepage";
 import { newsArticles as fallbackNews, type NewsArticle } from "@/lib/mock-news";
 
 type Accent = Product["accent"];
@@ -64,6 +66,7 @@ type ContentfulProductFields = {
   coverLabel?: string;
   accent?: Accent;
   isFeatured?: boolean;
+  status?: ProductStatus;
   image?: ContentfulLink;
   videoFile?: ContentfulLink;
   videoUrl?: string;
@@ -81,6 +84,30 @@ type ContentfulNewsFields = {
   isFeatured?: boolean;
 };
 
+type ContentfulSiteSettingsFields = {
+  heroEyebrow?: string;
+  heroStatusLabel?: string;
+  heroTitleLead?: string;
+  heroTitleHighlight?: string;
+  heroTitleTail?: string;
+  heroDescription?: string;
+  heroPrimaryCtaLabel?: string;
+  heroPrimaryCtaHref?: string;
+  heroSecondaryCtaLabel?: string;
+  heroSecondaryCtaHref?: string;
+  heroProofTitle?: string;
+  heroProofText?: string;
+  newsEyebrow?: string;
+  newsTitle?: string;
+  newsDescription?: string;
+  newsCtaLabel?: string;
+  announcementLabel?: string;
+  announcementTitle?: string;
+  announcementDescription?: string;
+  announcementCtaLabel?: string;
+  announcementCtaHref?: string;
+};
+
 const CONTENTFUL_SPACE_ID = process.env.CONTENTFUL_SPACE_ID;
 const CONTENTFUL_DELIVERY_TOKEN = process.env.CONTENTFUL_DELIVERY_TOKEN;
 const CONTENTFUL_ENVIRONMENT = process.env.CONTENTFUL_ENVIRONMENT || "master";
@@ -88,8 +115,15 @@ const CONTENTFUL_BASE_URL = `https://cdn.contentful.com/spaces/${CONTENTFUL_SPAC
 
 const accentFallbacks: Accent[] = ["emerald", "cyan", "violet", "amber"];
 
-function isContentfulConfigured() {
+export function isContentfulConfigured() {
   return Boolean(CONTENTFUL_SPACE_ID && CONTENTFUL_DELIVERY_TOKEN);
+}
+
+export function getContentSourceInfo() {
+  return {
+    cmsConfigured: isContentfulConfigured(),
+    cmsMode: isContentfulConfigured() ? "contentful" : "fallback"
+  } as const;
 }
 
 function normalizeAssetUrl(url?: string) {
@@ -128,6 +162,16 @@ function resolveLinkedAssetUrl(link: ContentfulLink | undefined, assets: Map<str
 
 function buildProductBadge(comparePrice: number, price: number) {
   return `${getDiscountPercent(comparePrice, price)}٪ تخفیف`;
+}
+
+function isPublicProduct(product: Product) {
+  return !product.status || product.status === "active";
+}
+
+function sortNewsByDate(items: NewsArticle[]) {
+  return [...items].sort(
+    (left, right) => new Date(right.publishedAt).getTime() - new Date(left.publishedAt).getTime()
+  );
 }
 
 async function fetchContentfulEntries<TFields>(
@@ -196,6 +240,7 @@ function mapContentfulProduct(
     coverLabel: fields.coverLabel || fields.brand || fields.title,
     accent: fields.accent || accentFallbacks[index % accentFallbacks.length],
     isFeatured: Boolean(fields.isFeatured),
+    status: fields.status || "active",
     imageUrl: resolveLinkedAssetUrl(fields.image, assets),
     videoUrl: resolveLinkedAssetUrl(fields.videoFile, assets) || fields.videoUrl
   };
@@ -225,17 +270,56 @@ function mapContentfulNews(
   };
 }
 
+function mapContentfulSiteSettings(item?: ContentfulItem<ContentfulSiteSettingsFields>): HomePageContent {
+  const fields = item?.fields;
+
+  return {
+    hero: {
+      eyebrow: fields?.heroEyebrow || fallbackHomePageContent.hero.eyebrow,
+      statusLabel: fields?.heroStatusLabel || fallbackHomePageContent.hero.statusLabel,
+      titleLead: fields?.heroTitleLead || fallbackHomePageContent.hero.titleLead,
+      titleHighlight: fields?.heroTitleHighlight || fallbackHomePageContent.hero.titleHighlight,
+      titleTail: fields?.heroTitleTail || fallbackHomePageContent.hero.titleTail,
+      description: fields?.heroDescription || fallbackHomePageContent.hero.description,
+      primaryCtaLabel:
+        fields?.heroPrimaryCtaLabel || fallbackHomePageContent.hero.primaryCtaLabel,
+      primaryCtaHref: fields?.heroPrimaryCtaHref || fallbackHomePageContent.hero.primaryCtaHref,
+      secondaryCtaLabel:
+        fields?.heroSecondaryCtaLabel || fallbackHomePageContent.hero.secondaryCtaLabel,
+      secondaryCtaHref:
+        fields?.heroSecondaryCtaHref || fallbackHomePageContent.hero.secondaryCtaHref,
+      proofTitle: fields?.heroProofTitle || fallbackHomePageContent.hero.proofTitle,
+      proofText: fields?.heroProofText || fallbackHomePageContent.hero.proofText
+    },
+    newsSection: {
+      eyebrow: fields?.newsEyebrow || fallbackHomePageContent.newsSection.eyebrow,
+      title: fields?.newsTitle || fallbackHomePageContent.newsSection.title,
+      description: fields?.newsDescription || fallbackHomePageContent.newsSection.description,
+      ctaLabel: fields?.newsCtaLabel || fallbackHomePageContent.newsSection.ctaLabel
+    },
+    announcement: {
+      label: fields?.announcementLabel || fallbackHomePageContent.announcement.label,
+      title: fields?.announcementTitle || fallbackHomePageContent.announcement.title,
+      description:
+        fields?.announcementDescription || fallbackHomePageContent.announcement.description,
+      ctaLabel: fields?.announcementCtaLabel || fallbackHomePageContent.announcement.ctaLabel,
+      ctaHref: fields?.announcementCtaHref || fallbackHomePageContent.announcement.ctaHref
+    }
+  };
+}
+
 async function loadContentfulProducts() {
   const response = await fetchContentfulEntries<ContentfulProductFields>("product", {
     order: "-sys.createdAt"
   });
   const assets = toAssetMap(response.includes);
-  const mapped =
+
+  return (
     response.items
       ?.map((item, index) => mapContentfulProduct(item, assets, index))
-      .filter((item): item is Product => Boolean(item)) || [];
-
-  return mapped;
+      .filter((item): item is Product => Boolean(item))
+      .filter(isPublicProduct) || []
+  );
 }
 
 async function loadContentfulNews() {
@@ -243,39 +327,60 @@ async function loadContentfulNews() {
     order: "-fields.publishedAt"
   });
   const assets = toAssetMap(response.includes);
-  const mapped =
+
+  return (
     response.items
       ?.map((item, index) => mapContentfulNews(item, assets, index))
-      .filter((item): item is NewsArticle => Boolean(item)) || [];
+      .filter((item): item is NewsArticle => Boolean(item)) || []
+  );
+}
 
-  return mapped;
+async function loadContentfulSiteSettings() {
+  const response = await fetchContentfulEntries<ContentfulSiteSettingsFields>("siteSettings", {
+    limit: 1
+  });
+
+  return mapContentfulSiteSettings(response.items?.[0]);
 }
 
 export const getStoreProducts = cache(async () => {
   if (!isContentfulConfigured()) {
-    return fallbackProducts;
+    return fallbackProducts.filter(isPublicProduct);
   }
 
   try {
     const contentfulProducts = await loadContentfulProducts();
-    return contentfulProducts.length > 0 ? contentfulProducts : fallbackProducts;
+    return contentfulProducts;
   } catch (error) {
     console.warn("Falling back to local products because Contentful failed:", error);
-    return fallbackProducts;
+    return fallbackProducts.filter(isPublicProduct);
   }
 });
 
 export const getStoreNews = cache(async () => {
   if (!isContentfulConfigured()) {
-    return fallbackNews;
+    return sortNewsByDate(fallbackNews);
   }
 
   try {
     const contentfulNews = await loadContentfulNews();
-    return contentfulNews.length > 0 ? contentfulNews : fallbackNews;
+    return sortNewsByDate(contentfulNews);
   } catch (error) {
     console.warn("Falling back to local news because Contentful failed:", error);
-    return fallbackNews;
+    return sortNewsByDate(fallbackNews);
+  }
+});
+
+export const getHomePageContent = cache(async () => {
+  if (!isContentfulConfigured()) {
+    return fallbackHomePageContent;
+  }
+
+  try {
+    return await loadContentfulSiteSettings();
+  } catch (error) {
+    console.warn("Falling back to local homepage settings because Contentful failed:", error);
+    return fallbackHomePageContent;
   }
 });
 
@@ -336,6 +441,16 @@ export async function getHeroStats() {
     brandCount,
     maxDiscount
   };
+}
+
+export async function getStoreNewsBySlug(slug: string) {
+  const news = await getStoreNews();
+  return news.find((item) => item.slug === slug);
+}
+
+export async function getRelatedNewsArticles(currentId: string, limit = 3) {
+  const news = await getStoreNews();
+  return news.filter((item) => item.id !== currentId).slice(0, limit);
 }
 
 export function getCategoryMeta(key: string) {

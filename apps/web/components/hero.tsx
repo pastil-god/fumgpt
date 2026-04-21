@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Product } from "@/lib/mock-data";
+import type { HomePageContent } from "@/lib/mock-homepage";
 import { siteConfig } from "@/lib/site";
 
 type Props = {
@@ -10,9 +11,12 @@ type Props = {
     brandCount: number;
     maxDiscount: number;
   };
+  content?: HomePageContent["hero"];
 };
 
-export function Hero({ featured, stats }: Props) {
+export function Hero({ featured, stats, content }: Props) {
+  const heroContent = content;
+
   if (!stats) {
     return (
       <section className="hero-section">
@@ -20,36 +24,37 @@ export function Hero({ featured, stats }: Props) {
           <div className="hero-grid">
             <div className="hero-copy surface hero-copy-card">
               <div className="hero-badge-row">
-                <div className="eyebrow">Premium AI Marketplace</div>
+                <div className="eyebrow">
+                  {heroContent?.eyebrow || "فروشگاه حرفه‌ای سرویس‌های هوش مصنوعی"}
+                </div>
                 <span className="hero-status-pill">در حال بارگذاری</span>
               </div>
 
               <h1>
-                خرید حرفه‌ای سرویس‌های <span>هوش مصنوعی</span> با تجربه‌ای شبیه یک
-                مارکت‌پلیس سطح بالا
+                {heroContent?.titleLead || "خرید حرفه‌ای سرویس‌های"}{" "}
+                <span>{heroContent?.titleHighlight || "هوش مصنوعی"}</span>{" "}
+                {heroContent?.titleTail || "با تجربه‌ای شبیه یک مارکت‌پلیس سطح بالا"}
               </h1>
               <p>
-                اطلاعات هیرو هنوز آماده نشده است. چند لحظه دیگر دوباره تلاش کنید یا پس از
-                بارگذاری داده‌ها، آمار و پیشنهادهای منتخب نمایش داده می‌شوند.
+                {heroContent?.description ||
+                  "اطلاعات هیرو هنوز آماده نشده است. چند لحظه دیگر دوباره تلاش کنید یا پس از بارگذاری داده‌ها، آمار و پیشنهادهای منتخب نمایش داده می‌شوند."}
               </p>
             </div>
 
             <div className="surface hero-market-card">
               <div className="hero-preview-header">
                 <div>
-                  <span className="preview-pill">Marketplace Overview</span>
+                  <span className="preview-pill">نمای کلی فروشگاه</span>
                   <h2>ویترین منتخب در حال آماده‌سازی است</h2>
                 </div>
               </div>
 
               <div className="launch-banner accent-grid">
                 <div>
-                  <small>Loading</small>
+                  <small>در حال بارگذاری</small>
                   <strong>اطلاعات آماری و محصولات منتخب به‌زودی نمایش داده می‌شوند</strong>
                 </div>
-                <p>
-                  تا زمانی که داده‌ها آماده شوند، این بخش به‌صورت امن بدون خطا رندر می‌شود.
-                </p>
+                <p>تا زمانی که داده‌ها آماده شوند، این بخش به‌صورت امن بدون خطا رندر می‌شود.</p>
               </div>
             </div>
           </div>
@@ -60,6 +65,21 @@ export function Hero({ featured, stats }: Props) {
 
   const { productCount, activeCategoryCount, brandCount, maxDiscount } = stats;
   const safeFeatured = featured || [];
+  const resolvedContent = heroContent || {
+    eyebrow: "فروشگاه حرفه‌ای سرویس‌های هوش مصنوعی",
+    statusLabel: "لانچ زنده با کاتالوگ واقعی",
+    titleLead: "خرید حرفه‌ای سرویس‌های",
+    titleHighlight: "هوش مصنوعی",
+    titleTail: "با تجربه‌ای شبیه یک مارکت‌پلیس سطح بالا",
+    description:
+      "صفحه اصلی حالا به‌جای یک معرفی ساده، مثل ویترین یک فروشگاه حرفه‌ای رفتار می‌کند: دسته‌بندی واضح، پیشنهادهای منتخب، CTAهای روشن و نشانه‌های اعتماد برای خرید سریع‌تر و مطمئن‌تر.",
+    primaryCtaLabel: "مشاهده محصولات منتخب",
+    primaryCtaHref: "/products",
+    secondaryCtaLabel: "ورود به بازارچه ایجنت",
+    secondaryCtaHref: "/agents",
+    proofTitle: "مشاوره قبل از خرید",
+    proofText: "برای انتخاب پلن مناسب، تحویل و فعال‌سازی سریع"
+  };
 
   return (
     <section className="hero-section">
@@ -67,33 +87,29 @@ export function Hero({ featured, stats }: Props) {
         <div className="hero-grid">
           <div className="hero-copy surface hero-copy-card">
             <div className="hero-badge-row">
-              <div className="eyebrow">Premium AI Marketplace</div>
-              <span className="hero-status-pill">لانچ زنده با کاتالوگ واقعی</span>
+              <div className="eyebrow">{resolvedContent.eyebrow}</div>
+              <span className="hero-status-pill">{resolvedContent.statusLabel}</span>
             </div>
 
             <h1>
-              خرید حرفه‌ای سرویس‌های <span>هوش مصنوعی</span> با تجربه‌ای شبیه یک
-              مارکت‌پلیس سطح بالا
+              {resolvedContent.titleLead} <span>{resolvedContent.titleHighlight}</span>{" "}
+              {resolvedContent.titleTail}
             </h1>
-            <p>
-              صفحه اصلی حالا به‌جای یک معرفی ساده، مثل ویترین یک فروشگاه حرفه‌ای رفتار
-              می‌کند: دسته‌بندی واضح، پیشنهادهای منتخب، CTAهای روشن و نشانه‌های اعتماد
-              برای خرید سریع‌تر و مطمئن‌تر.
-            </p>
+            <p>{resolvedContent.description}</p>
 
             <div className="hero-cta-row">
-              <Link className="btn btn-primary btn-large" href="/products">
-                مشاهده محصولات منتخب
+              <Link className="btn btn-primary btn-large" href={resolvedContent.primaryCtaHref}>
+                {resolvedContent.primaryCtaLabel}
               </Link>
-              <Link className="btn btn-secondary btn-large" href="/agents">
-                ورود به بازارچه ایجنت
+              <Link className="btn btn-secondary btn-large" href={resolvedContent.secondaryCtaHref}>
+                {resolvedContent.secondaryCtaLabel}
               </Link>
             </div>
 
             <div className="hero-proof-strip">
               <div>
-                <strong>مشاوره قبل از خرید</strong>
-                <span>برای انتخاب پلن مناسب، تحویل و فعال‌سازی سریع</span>
+                <strong>{resolvedContent.proofTitle}</strong>
+                <span>{resolvedContent.proofText}</span>
               </div>
               <Link className="chip chip-link" href={siteConfig.telegram}>
                 گفت‌وگو در تلگرام
@@ -131,7 +147,7 @@ export function Hero({ featured, stats }: Props) {
           <div className="surface hero-market-card">
             <div className="hero-preview-header">
               <div>
-                <span className="preview-pill">Marketplace Overview</span>
+                <span className="preview-pill">نمای کلی فروشگاه</span>
                 <h2>ویترین منتخب برای تصمیم‌گیری سریع</h2>
               </div>
               <div className="hero-score-card">
@@ -142,14 +158,13 @@ export function Hero({ featured, stats }: Props) {
 
             <div className="hero-market-feature accent-grid">
               <div>
-                <small>Signal</small>
-                <strong>ساختار لانچ آماده توسعه برای آکادمی و Agent Marketplace</strong>
+                <small>چشم‌انداز</small>
+                <strong>ساختار لانچ آماده توسعه برای آکادمی و بازارچه ایجنت</strong>
                 <p>
-                  ویترین اصلی هم‌زمان برای فروش فوری، توسعه فاز دوم و اضافه شدن سرویس‌های
-                  حرفه‌ای طراحی شده است.
+                  ویترین اصلی هم‌زمان برای فروش فوری، توسعه فاز دوم و اضافه شدن سرویس‌های حرفه‌ای طراحی شده است.
                 </p>
               </div>
-              <span className="hero-market-badge">Live Catalog</span>
+              <span className="hero-market-badge">کاتالوگ زنده</span>
             </div>
 
             <div className="mini-product-stack">
@@ -178,7 +193,7 @@ export function Hero({ featured, stats }: Props) {
 
             <div className="launch-banner accent-grid">
               <div>
-                <small>Trust Layer</small>
+                <small>اعتماد خرید</small>
                 <strong>نشانه‌های اعتماد داخل همان اولین اسکرول</strong>
               </div>
               <ul className="feature-list-simple compact">
@@ -199,13 +214,13 @@ export function Hero({ featured, stats }: Props) {
 
           <div className="surface hero-assurance-card">
             <small>اعتماد خرید</small>
-            <strong>پشتیبانی، پرداخت ریالی و مسیر ارتباطی مستقیم در همان Hero دیده می‌شود</strong>
+            <strong>پشتیبانی، مشاوره پیش از خرید و مسیر ارتباطی مستقیم در همان Hero دیده می‌شود</strong>
             <p>کاربر برای فهمیدن نحوه خرید یا اعتمادسازی لازم نیست چند بخش پایین‌تر اسکرول کند.</p>
           </div>
 
           <div className="surface hero-assurance-card">
-            <small>Premium Positioning</small>
-            <strong>هدر اصلی حالا بیشتر شبیه داشبورد یک فروشگاه AI حرفه‌ای است</strong>
+            <small>جایگاه برند</small>
+            <strong>هدر اصلی حالا بیشتر شبیه داشبورد یک فروشگاه حرفه‌ای هوش مصنوعی است</strong>
             <p>ترکیب متریک‌ها، شلف منتخب و پیام‌های اعتماد، حس برند و کیفیت را بالا می‌برد.</p>
           </div>
         </div>

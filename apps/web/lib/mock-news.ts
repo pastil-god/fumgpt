@@ -35,7 +35,7 @@ export const newsArticles: NewsArticle[] = [
   {
     id: "news-003",
     slug: "next-phase-roadmap-for-academy-and-agents",
-    title: "نقشه راه فاز بعد: آکادمی، محتوای آموزشی و Agent Marketplace",
+    title: "نقشه راه فاز بعد: آکادمی، محتوای آموزشی و بازارچه ایجنت",
     excerpt:
       "معماری فعلی طوری چیده شده که در فاز بعد بتوان خبرها، آموزش‌ها و ایجنت‌ها را روی همین پایه گسترش داد.",
     body:

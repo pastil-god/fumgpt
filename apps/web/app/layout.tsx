@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Vazirmatn } from "next/font/google";
 import type { ReactNode } from "react";
 import "./globals.css";
@@ -14,9 +14,46 @@ const persianFallbackFont = Vazirmatn({
 });
 
 export const metadata: Metadata = {
-  title: siteConfig.title,
+  title: {
+    default: siteConfig.title,
+    template: `%s | ${siteConfig.name}`
+  },
   description: siteConfig.description,
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000")
+  metadataBase: new URL(siteConfig.siteUrl),
+  alternates: {
+    canonical: "/"
+  },
+  openGraph: {
+    title: siteConfig.title,
+    description: siteConfig.description,
+    url: siteConfig.siteUrl,
+    siteName: siteConfig.name,
+    locale: "fa_IR",
+    type: "website",
+    images: [
+      {
+        url: "/logo.svg",
+        width: 420,
+        height: 124,
+        alt: siteConfig.name
+      }
+    ]
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteConfig.title,
+    description: siteConfig.description,
+    images: ["/logo.svg"]
+  },
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg"
+  }
+};
+
+export const viewport: Viewport = {
+  themeColor: "#07111f"
 };
 
 export default function RootLayout({

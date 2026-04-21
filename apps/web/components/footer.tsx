@@ -10,12 +10,12 @@ export function Footer() {
             <img src="/logo.svg" alt="FumGPT" width="44" height="44" />
             <div>
               <strong>{siteConfig.name}</strong>
-              <span>Premium AI Commerce</span>
+              <span>ویترین حرفه‌ای محصولات دیجیتال</span>
             </div>
           </div>
           <p className="muted">
-            فروشگاه جدید {siteConfig.name} با تمرکز روی فروش حرفه‌ای محصولات هوش مصنوعی
-            ساخته شده و از ابتدا مسیر توسعه آکادمی و بازارچه ایجنت را هم باز نگه می‌دارد.
+            {siteConfig.name} برای عرضه عمومی امروز با تمرکز روی کاتالوگ واقعی، تجربه مرور روان و مدیریت ساده محتوا آماده شده است و از همین حالا
+            مسیر توسعه آکادمی و بازارچه ایجنت را هم باز نگه می‌دارد.
           </p>
           <div className="chip-row">
             {siteConfig.trustPills.map((item) => (
@@ -29,10 +29,11 @@ export function Footer() {
         <div className="surface footer-card">
           <h3>لینک‌های مهم</h3>
           <div className="footer-links">
-            <Link href="/products">همه محصولات</Link>
+            <Link href="/products">فروشگاه</Link>
+            <Link href="/news">خبرها و مقاله‌ها</Link>
             <Link href="/academy">آکادمی</Link>
             <Link href="/agents">بازارچه ایجنت</Link>
-            <Link href="/login">حساب کاربری</Link>
+            <Link href="/account">حساب کاربری</Link>
           </div>
         </div>
 
@@ -52,8 +53,8 @@ export function Footer() {
       </div>
 
       <div className="container footer-bottom">
-        <span>© 2026 {siteConfig.name}. All rights reserved.</span>
-        <span>فاز اول: پوسته حرفه‌ای + کاتالوگ واقعی محصولات</span>
+        <span>© 2026 {siteConfig.name}. همه حقوق محفوظ است.</span>
+        <span>نسخه امروز: ویترین عمومی، کاتالوگ واقعی و مدیریت محتوای بیرونی</span>
       </div>
     </footer>
   );

@@ -19,6 +19,7 @@
 CONTENTFUL_SPACE_ID=your_space_id
 CONTENTFUL_DELIVERY_TOKEN=your_delivery_token
 CONTENTFUL_ENVIRONMENT=master
+NEXT_PUBLIC_CMS_DASHBOARD_URL=https://app.contentful.com/spaces/your-space-id
 ```
 
 ## 2. مدل‌های محتوا
@@ -46,6 +47,7 @@ CONTENTFUL_ENVIRONMENT=master
 | `coverLabel` | Short text | متن روی کاور کارت |
 | `accent` | Short text | یکی از: `emerald`, `cyan`, `violet`, `amber` |
 | `isFeatured` | Boolean | برای نمایش در هیرو و صفحه اصلی |
+| `status` | Short text | یکی از: `active`, `draft`, `archived` |
 | `image` | Media | تصویر محصول |
 | `videoFile` | Media | فایل ویدئوی محصول |
 | `videoUrl` | Short text | لینک ویدئو در صورت استفاده از ویدئوی خارجی |
@@ -66,6 +68,34 @@ CONTENTFUL_ENVIRONMENT=master
 | `videoFile` | Media | فایل ویدئو |
 | `videoUrl` | Short text | لینک ویدئو اگر فایل آپلود نمی‌کنید |
 
+### `siteSettings`
+
+این نوع محتوا برای کنترل هیرو و بنر صفحه اصلی است. پیشنهاد می‌شود فقط یک ورودی از آن داشته باشید.
+
+| Field ID | Type | توضیح |
+|---|---|---|
+| `heroEyebrow` | Short text | متن بالای هیرو |
+| `heroStatusLabel` | Short text | لیبل وضعیت کنار هیرو |
+| `heroTitleLead` | Short text | بخش اول تیتر هیرو |
+| `heroTitleHighlight` | Short text | بخش هایلایت تیتر هیرو |
+| `heroTitleTail` | Short text | بخش آخر تیتر هیرو |
+| `heroDescription` | Long text | توضیح زیر تیتر |
+| `heroPrimaryCtaLabel` | Short text | متن دکمه اول |
+| `heroPrimaryCtaHref` | Short text | لینک دکمه اول |
+| `heroSecondaryCtaLabel` | Short text | متن دکمه دوم |
+| `heroSecondaryCtaHref` | Short text | لینک دکمه دوم |
+| `heroProofTitle` | Short text | تیتر نوار اعتماد هیرو |
+| `heroProofText` | Short text | متن نوار اعتماد هیرو |
+| `newsEyebrow` | Short text | متن بالای سکشن خبر |
+| `newsTitle` | Short text | تیتر سکشن خبر |
+| `newsDescription` | Long text | توضیح سکشن خبر |
+| `newsCtaLabel` | Short text | متن دکمه رفتن به صفحه خبرها |
+| `announcementLabel` | Short text | لیبل بنر پایین صفحه اصلی |
+| `announcementTitle` | Short text | تیتر بنر پایین صفحه اصلی |
+| `announcementDescription` | Long text | متن بنر پایین صفحه اصلی |
+| `announcementCtaLabel` | Short text | متن دکمه بنر |
+| `announcementCtaHref` | Short text | لینک دکمه بنر |
+
 ## 3. مدیریت تصویر و ویدئو
 
 - برای تصویر و ویدئو از فیلدهای `Media` استفاده کنید.
@@ -85,10 +115,14 @@ CONTENTFUL_ENVIRONMENT=master
 ## 5. رفتار فعلی پروژه
 
 - `صفحه اصلی`: خبرها از CMS بالای هوم‌پیج نمایش داده می‌شوند.
+- `هیرو و بنر صفحه اصلی`: اگر `siteSettings` ساخته شود، از CMS خوانده می‌شوند.
 - `محصولات`: لیست محصولات و جزئیات محصول از CMS خوانده می‌شوند.
+- `صفحه خبرها`: لیست و جزئیات خبرها از CMS خوانده می‌شوند.
 - `Fallback`: اگر CMS هنوز تنظیم نشده باشد، داده‌های محلی فعلی لود می‌شوند.
 
 ## 6. پیشنهاد برای تیم محتوا
 
 - برای هر محصول حتماً `slug`, `category`, `price`, `comparePrice`, `image` و `isFeatured` را مشخص کنید.
+- برای اینکه محصول در سایت عمومی دیده شود، `status` را روی `active` بگذارید.
 - برای خبرها بهتر است همیشه `image` و `publishedAt` پر شود تا سکشن خبر مرتب‌تر دیده شود.
+- برای مدیریت مستقیم محتوا می‌توانید `NEXT_PUBLIC_CMS_DASHBOARD_URL` را روی لینک Space خودتان بگذارید تا از داخل حساب کاربری هم دسترسی سریع داشته باشید.

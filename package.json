@@ -4,6 +4,7 @@
   "packageManager": "pnpm@10.6.0",
   "scripts": {
     "dev": "pnpm --filter web dev",
+    "dev:turbo": "pnpm --filter web dev:turbo",
     "build": "pnpm --filter web build",
     "start": "pnpm --filter web start"
   }

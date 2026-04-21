@@ -6,22 +6,24 @@ import { ProductCard } from "@/components/product-card";
 import {
   getFeaturedStoreProducts,
   getHeroStats,
+  getHomePageContent,
   getStoreCategoryCounts,
   getStoreNews
 } from "@/lib/content";
 
 export default async function HomePage() {
-  const [featuredProducts, newsArticles, categoryCounts, heroStats] = await Promise.all([
+  const [featuredProducts, newsArticles, categoryCounts, heroStats, homePageContent] = await Promise.all([
     getFeaturedStoreProducts(),
     getStoreNews(),
     getStoreCategoryCounts(),
-    getHeroStats()
+    getHeroStats(),
+    getHomePageContent()
   ]);
 
   return (
     <>
-      <NewsSection articles={newsArticles.slice(0, 3)} />
-      <Hero featured={featuredProducts.slice(0, 4)} stats={heroStats} />
+      <NewsSection articles={newsArticles.slice(0, 3)} content={homePageContent.newsSection} />
+      <Hero featured={featuredProducts.slice(0, 4)} stats={heroStats} content={homePageContent.hero} />
 
       <section className="section">
         <div className="container section-stack">
@@ -52,11 +54,21 @@ export default async function HomePage() {
             </div>
           </div>
 
-          <div className="product-grid">
-            {featuredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          {featuredProducts.length > 0 ? (
+            <div className="product-grid">
+              {featuredProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          ) : (
+            <div className="surface empty-state-card">
+              <strong>هنوز محصول شاخصی برای نمایش انتخاب نشده است</strong>
+              <p className="muted">
+                از CMS می‌توانی روی محصولات موردنظر گزینه `featured` را فعال کنی تا در صفحه
+                اصلی نمایش داده شوند.
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
@@ -98,15 +110,12 @@ export default async function HomePage() {
         <div className="container section-stack">
           <div className="surface support-strip">
             <div>
-              <small>Launch Mode</small>
-              <strong>الان تمرکز روی لانچ پوسته و کاتالوگ واقعی است</strong>
+              <small>{homePageContent.announcement.label}</small>
+              <strong>{homePageContent.announcement.title}</strong>
             </div>
-            <p>
-              در این مرحله به‌جای درگیر شدن با درگاه و پیامک، ظاهر، ساختار و محصولات را
-              روی دامنه جدید حرفه‌ای می‌کنیم تا فاز بعدی روی یک پایه تمیز سوار شود.
-            </p>
-            <Link href="/login" className="btn btn-primary">
-              ورود آزمایشی
+            <p>{homePageContent.announcement.description}</p>
+            <Link href={homePageContent.announcement.ctaHref} className="btn btn-primary">
+              {homePageContent.announcement.ctaLabel}
             </Link>
           </div>
         </div>

@@ -1,7 +1,12 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { ProductCard } from "@/components/product-card";
 import { categories } from "@/lib/mock-data";
 import { filterStoreProducts, getCategoryMeta } from "@/lib/content";
+
+export const metadata: Metadata = {
+  title: "محصولات"
+};
 
 type SearchParamsLike =
   | Promise<{ category?: string }>
@@ -60,11 +65,24 @@ export default async function ProductsPage({
           ))}
         </div>
 
-        <div className="product-grid">
-          {filteredProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        {filteredProducts.length > 0 ? (
+          <div className="product-grid">
+            {filteredProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        ) : (
+          <div className="surface empty-state-card">
+            <strong>در این دسته هنوز محصول فعالی وجود ندارد</strong>
+            <p className="muted">
+              اگر از CMS استفاده می‌کنی، وضعیت محصول را روی `active` بگذار تا در فروشگاه
+              عمومی نمایش داده شود.
+            </p>
+            <Link href="/products" className="btn btn-ghost">
+              بازگشت به همه محصولات
+            </Link>
+          </div>
+        )}
       </div>
     </section>
   );

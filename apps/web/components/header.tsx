@@ -8,8 +8,8 @@ export function Header() {
         <div className="container topbar-shell">
           <div className="topbar-items">
             <span>تحویل دیجیتال سریع</span>
-            <span>پشتیبانی پیش از خرید</span>
-            <span>زیرساخت آماده توسعه</span>
+            <span>مشاوره پیش از خرید</span>
+            <span>محتوای قابل مدیریت</span>
           </div>
           <div className="topbar-items is-muted">
             <span>{siteConfig.phone}</span>
@@ -24,7 +24,7 @@ export function Header() {
             <img src="/logo.svg" alt="FumGPT" width="44" height="44" />
             <div>
               <strong>{siteConfig.name}</strong>
-              <span>AI Premium Storefront</span>
+              <span>فروشگاه حرفه‌ای سرویس‌های هوش مصنوعی</span>
             </div>
           </Link>
 
@@ -37,11 +37,11 @@ export function Header() {
           </nav>
 
           <div className="header-actions">
-            <Link href="/products" className="btn btn-ghost">
-              محصولات
+            <Link href="/account" className="btn btn-ghost">
+              حساب کاربری
             </Link>
             <Link href="/cart" className="btn btn-primary">
-              خرید سریع
+              سبد خرید
             </Link>
           </div>
         </div>
