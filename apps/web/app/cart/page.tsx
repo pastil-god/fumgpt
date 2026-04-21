@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { getFeaturedProducts, formatPriceIRR } from "@/lib/mock-data";
+import { getFeaturedStoreProducts } from "@/lib/content";
+import { formatPriceIRR } from "@/lib/mock-data";
 
-export default function CartPage() {
-  const items = getFeaturedProducts(3);
+export default async function CartPage() {
+  const items = await getFeaturedStoreProducts(3);
   const subtotal = items.reduce((sum, item) => sum + item.price, 0);
 
   return (

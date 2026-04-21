@@ -1,15 +1,27 @@
 import Link from "next/link";
 import { Hero } from "@/components/hero";
+import { NewsSection } from "@/components/news-section";
 import { CategoryGrid } from "@/components/category-grid";
 import { ProductCard } from "@/components/product-card";
-import { getFeaturedProducts } from "@/lib/mock-data";
+import {
+  getFeaturedStoreProducts,
+  getHeroStats,
+  getStoreCategoryCounts,
+  getStoreNews
+} from "@/lib/content";
 
-export default function HomePage() {
-  const featuredProducts = getFeaturedProducts();
+export default async function HomePage() {
+  const [featuredProducts, newsArticles, categoryCounts, heroStats] = await Promise.all([
+    getFeaturedStoreProducts(),
+    getStoreNews(),
+    getStoreCategoryCounts(),
+    getHeroStats()
+  ]);
 
   return (
     <>
-      <Hero />
+      <NewsSection articles={newsArticles.slice(0, 3)} />
+      <Hero featured={featuredProducts.slice(0, 4)} stats={heroStats} />
 
       <section className="section">
         <div className="container section-stack">
@@ -27,7 +39,7 @@ export default function HomePage() {
             </Link>
           </div>
 
-          <CategoryGrid />
+          <CategoryGrid items={categoryCounts} />
         </div>
       </section>
 

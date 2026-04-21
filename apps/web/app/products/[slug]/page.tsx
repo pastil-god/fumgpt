@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  formatPriceIRR,
-  getDiscountPercent,
-  getProductBySlug,
-  getRelatedProducts,
-  getCategoryMeta
-} from "@/lib/mock-data";
+  getCategoryMeta,
+  getStoreProductBySlug,
+  getStoreRelatedProducts,
+  isDirectVideoFile
+} from "@/lib/content";
+import { formatPriceIRR, getDiscountPercent } from "@/lib/mock-data";
 import { ProductCard } from "@/components/product-card";
 
 export default async function ProductDetailPage({
@@ -19,13 +19,13 @@ export default async function ProductDetailPage({
       ? await (params as Promise<{ slug: string }>)
       : (params as { slug: string });
 
-  const product = getProductBySlug(resolvedParams.slug);
+  const product = await getStoreProductBySlug(resolvedParams.slug);
 
   if (!product) {
     notFound();
   }
 
-  const relatedProducts = getRelatedProducts(product.category, product.id);
+  const relatedProducts = await getStoreRelatedProducts(product.category, product.id);
   const categoryMeta = getCategoryMeta(product.category);
 
   return (
@@ -34,6 +34,9 @@ export default async function ProductDetailPage({
         <div className="detail-grid">
           <div className="surface detail-main">
             <div className={`detail-visual accent-${product.accent}`}>
+              {product.imageUrl ? (
+                <img className="detail-visual-media" src={product.imageUrl} alt={product.title} />
+              ) : null}
               <span>{product.brand}</span>
               <strong>{product.coverLabel}</strong>
             </div>
@@ -75,6 +78,24 @@ export default async function ProductDetailPage({
                   بازگشت به فروشگاه
                 </Link>
               </div>
+
+              {product.videoUrl ? (
+                <div className="surface nested-card product-video-card">
+                  <div className="eyebrow">ویدئوی محصول</div>
+                  {isDirectVideoFile(product.videoUrl) ? (
+                    <video className="product-video" controls preload="metadata" src={product.videoUrl} />
+                  ) : (
+                    <a
+                      className="btn btn-secondary"
+                      href={product.videoUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      مشاهده ویدئو
+                    </a>
+                  )}
+                </div>
+              ) : null}
             </div>
           </div>
 

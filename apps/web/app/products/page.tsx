@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ProductCard } from "@/components/product-card";
-import { categories, filterProducts } from "@/lib/mock-data";
+import { categories } from "@/lib/mock-data";
+import { filterStoreProducts, getCategoryMeta } from "@/lib/content";
 
 type SearchParamsLike =
   | Promise<{ category?: string }>
@@ -26,8 +27,8 @@ export default async function ProductsPage({
 }) {
   const params = await resolveSearchParams(searchParams);
   const selectedCategory = params.category || "all";
-  const filteredProducts = filterProducts(selectedCategory);
-  const selectedMeta = categories.find((item) => item.key === selectedCategory) || categories[0];
+  const filteredProducts = await filterStoreProducts(selectedCategory);
+  const selectedMeta = getCategoryMeta(selectedCategory) || categories[0];
 
   return (
     <section className="section">

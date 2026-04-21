@@ -18,6 +18,8 @@ export type Product = {
   coverLabel: string;
   accent: "cyan" | "violet" | "amber" | "emerald";
   isFeatured?: boolean;
+  imageUrl?: string;
+  videoUrl?: string;
 };
 
 export const categories: Array<{

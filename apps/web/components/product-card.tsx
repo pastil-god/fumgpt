@@ -10,6 +10,9 @@ export function ProductCard({ product }: Props) {
   return (
     <article className="surface product-card">
       <div className={`product-visual accent-${product.accent}`}>
+        {product.imageUrl ? (
+          <img className="product-visual-media" src={product.imageUrl} alt={product.title} />
+        ) : null}
         <span className="product-brand">{product.brand}</span>
         <strong>{product.coverLabel}</strong>
       </div>
