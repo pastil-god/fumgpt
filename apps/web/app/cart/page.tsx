@@ -1,15 +1,18 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { getFeaturedStoreProducts } from "@/lib/content";
+import { getFeaturedStoreProducts, getStorefrontSettings } from "@/lib/content";
 import { formatPriceIRR } from "@/lib/mock-data";
-import { siteConfig } from "@/lib/site";
+import { isExternalHref } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "سبد خرید"
 };
 
 export default async function CartPage() {
-  const items = await getFeaturedStoreProducts(3);
+  const [items, storefrontSettings] = await Promise.all([
+    getFeaturedStoreProducts(3),
+    getStorefrontSettings()
+  ]);
   const subtotal = items.reduce((sum, item) => sum + item.price, 0);
 
   return (
@@ -69,9 +72,20 @@ export default async function CartPage() {
             </div>
           </div>
 
-          <a className="btn btn-primary btn-block" href={siteConfig.telegram} target="_blank" rel="noreferrer">
-            هماهنگی خرید با پشتیبانی
-          </a>
+          {isExternalHref(storefrontSettings.support.helpCtaHref) ? (
+            <a
+              className="btn btn-primary btn-block"
+              href={storefrontSettings.support.helpCtaHref}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {storefrontSettings.support.helpCtaLabel}
+            </a>
+          ) : (
+            <Link className="btn btn-primary btn-block" href={storefrontSettings.support.helpCtaHref}>
+              {storefrontSettings.support.helpCtaLabel}
+            </Link>
+          )}
           <Link className="btn btn-ghost btn-block" href="/products">
             ادامه مرور فروشگاه
           </Link>

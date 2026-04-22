@@ -60,7 +60,7 @@ export default async function NewsDetailPage({
   const relatedArticles = await getRelatedNewsArticles(article.id, 3);
 
   return (
-    <section className="section">
+    <section className="section section-muted">
       <div className="container section-stack">
         <div className="surface article-shell">
           <div className="article-meta">
@@ -77,6 +77,8 @@ export default async function NewsDetailPage({
                 src={article.imageUrl}
                 alt={article.title}
                 fill
+                priority
+                quality={70}
                 sizes="(max-width: 1160px) 100vw, 80vw"
               />
             </div>
@@ -120,7 +122,7 @@ export default async function NewsDetailPage({
 
             <div className="news-page-grid">
               {relatedArticles.map((item) => (
-                <Link href={`/news/${item.slug}`} className="surface news-card" key={item.id}>
+                <Link href={`/news/${item.slug}`} className="surface news-card" key={item.id} prefetch={false}>
                   {item.imageUrl ? (
                     <div className="news-media-shell">
                       <Image
@@ -128,6 +130,7 @@ export default async function NewsDetailPage({
                         src={item.imageUrl}
                         alt={item.title}
                         fill
+                        quality={65}
                         sizes="(max-width: 840px) 100vw, (max-width: 1160px) 50vw, 33vw"
                       />
                     </div>

@@ -26,7 +26,7 @@ export default function AcademyPage() {
           </div>
         </div>
 
-        <div className="future-cards">
+        <div className="future-cards" id="learning-path">
           <div className="surface nested-card">
             <strong>دوره‌های کاربردی</strong>
             <p className="muted">فروش دوره، محتوای دانلودی و دسترسی آموزشی در همان زبان طراحی فروشگاه.</p>

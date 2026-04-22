@@ -8,118 +8,166 @@ import {
   getHeroStats,
   getHomePageContent,
   getStoreCategoryCounts,
-  getStoreNews
+  getStoreNews,
+  getStorefrontSettings
 } from "@/lib/content";
+import { isExternalHref } from "@/lib/site";
 
-export default async function HomePage() {
-  const [featuredProducts, newsArticles, categoryCounts, heroStats, homePageContent] = await Promise.all([
-    getFeaturedStoreProducts(),
-    getStoreNews(),
-    getStoreCategoryCounts(),
-    getHeroStats(),
-    getHomePageContent()
-  ]);
+function PageAction({
+  href,
+  label,
+  className
+}: {
+  href: string;
+  label: string;
+  className: string;
+}) {
+  if (isExternalHref(href)) {
+    return (
+      <a className={className} href={href} target="_blank" rel="noreferrer">
+        {label}
+      </a>
+    );
+  }
 
   return (
-    <>
-      <NewsSection articles={newsArticles.slice(0, 3)} content={homePageContent.newsSection} />
-      <Hero featured={featuredProducts.slice(0, 4)} stats={heroStats} content={homePageContent.hero} />
+    <Link href={href} className={className}>
+      {label}
+    </Link>
+  );
+}
 
-      <section className="section">
-        <div className="container section-stack">
-          <div className="section-header">
-            <div>
-              <div className="eyebrow">ورود سریع به دسته‌ها</div>
-              <h2 className="section-title">چینش فروشگاهی حرفه‌ای برای شروع لانچ</h2>
-              <p className="muted section-text">
-                به‌جای یک صفحه ساده، فروشگاه جدید با دسته‌های واضح، شلف محصولات و حس
-                برندینگ حرفه‌ای شروع می‌کند.
-              </p>
+export default async function HomePage() {
+  const [featuredProducts, newsArticles, categoryCounts, heroStats, homePageContent, storefrontSettings] =
+    await Promise.all([
+      getFeaturedStoreProducts(),
+      getStoreNews(),
+      getStoreCategoryCounts(),
+      getHeroStats(),
+      getHomePageContent(),
+      getStorefrontSettings()
+    ]);
+
+  return (
+    <div className="homepage-shell">
+      <Hero
+        featured={featuredProducts.slice(0, 4)}
+        stats={heroStats}
+        content={homePageContent.hero}
+        storefront={storefrontSettings}
+      />
+
+      {homePageContent.categorySection.isVisible ? (
+        <section className="section section-muted home-section home-section-categories deferred-section">
+          <div className="container section-stack home-section-stack">
+            <div className="section-header home-section-header">
+              <div className="section-copy">
+                <div className="eyebrow">{homePageContent.categorySection.eyebrow}</div>
+                <h2 className="section-title">{homePageContent.categorySection.title}</h2>
+                <p className="muted section-text">{homePageContent.categorySection.description}</p>
+              </div>
+              <PageAction
+                href={homePageContent.categorySection.ctaHref}
+                label={homePageContent.categorySection.ctaLabel}
+                className="btn btn-secondary"
+              />
             </div>
-            <Link href="/products" className="btn btn-ghost">
-              دیدن کاتالوگ کامل
-            </Link>
+
+            <CategoryGrid items={categoryCounts} />
           </div>
+        </section>
+      ) : null}
 
-          <CategoryGrid items={categoryCounts} />
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="container section-stack">
-          <div className="section-header">
-            <div>
-              <div className="eyebrow">محصولات فاز اول</div>
-              <h2 className="section-title">محصولات واقعی که از سایت فعلی برداشته شدند</h2>
+      {homePageContent.featuredSection.isVisible ? (
+        <section className="section home-section home-section-featured deferred-section">
+          <div className="container section-stack home-section-stack">
+            <div className="section-header home-section-header">
+              <div className="section-copy">
+                <div className="eyebrow">{homePageContent.featuredSection.eyebrow}</div>
+                <h2 className="section-title">{homePageContent.featuredSection.title}</h2>
+                <p className="muted section-text">{homePageContent.featuredSection.description}</p>
+              </div>
+              <PageAction
+                href={homePageContent.featuredSection.ctaHref}
+                label={homePageContent.featuredSection.ctaLabel}
+                className="btn btn-secondary"
+              />
             </div>
+
+            {featuredProducts.length > 0 ? (
+              <div className="product-grid featured-product-grid">
+                {featuredProducts.map((product) => (
+                  <ProductCard key={product.id} product={product} variant="featured" />
+                ))}
+              </div>
+            ) : (
+              <div className="surface empty-state-card">
+                <strong>هنوز محصول شاخصی برای نمایش انتخاب نشده است</strong>
+                <p className="muted">
+                  اگر از CMS استفاده می‌کنی، گزینه `featured` را روی محصولات موردنظر فعال کن تا در این بخش نمایش داده شوند.
+                </p>
+              </div>
+            )}
           </div>
+        </section>
+      ) : null}
 
-          {featuredProducts.length > 0 ? (
-            <div className="product-grid">
-              {featuredProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
-          ) : (
-            <div className="surface empty-state-card">
-              <strong>هنوز محصول شاخصی برای نمایش انتخاب نشده است</strong>
-              <p className="muted">
-                از CMS می‌توانی روی محصولات موردنظر گزینه `featured` را فعال کنی تا در صفحه
-                اصلی نمایش داده شوند.
-              </p>
-            </div>
-          )}
-        </div>
-      </section>
+      {homePageContent.newsSection.isVisible ? (
+        <NewsSection articles={newsArticles.slice(0, 3)} content={homePageContent.newsSection} />
+      ) : null}
 
-      <section className="section">
+      <section className="section section-muted deferred-section">
         <div className="container roadmap-grid">
           <div className="surface roadmap-card">
-            <div className="eyebrow">چرا این طراحی بهتر شد</div>
-            <h2 className="section-title">فروشگاه حالا حس برند و اعتماد دارد</h2>
+            <div className="eyebrow">چرا FumGPT</div>
+            <h2 className="section-title">یک ویترین روشن، مرتب و قابل اعتماد برای خرید دیجیتال</h2>
             <ul className="feature-list-simple">
-              <li>هدر حرفه‌ای با CTA و اطلاعات تماس</li>
-              <li>هیرو قوی با پیشنهاد ارزشی روشن</li>
-              <li>شلف‌های محصول با قیمت قبل و بعد از تخفیف</li>
-              <li>کارت‌های دسته‌بندی و مسیر خرید سریع</li>
-              <li>زبان طراحی یکپارچه برای توسعه فازهای بعد</li>
+              <li>هدر تمیز و سبک با ناوبری خوانا و اکشن‌های واضح</li>
+              <li>بنر اصلی روشن با CTAهای مستقیم و اعتمادساز</li>
+              <li>تب‌های دسته‌بندی و کارت‌های گرد برای مرور راحت‌تر</li>
+              <li>کارت محصول با قیمت‌گذاری شفاف و مسیر خرید مشخص</li>
+              <li>سازگاری کامل با CMS و توسعه فازهای بعدی روی همین ظاهر</li>
             </ul>
           </div>
 
           <div className="surface roadmap-card accent-grid">
-            <div className="eyebrow">فازهای بعدی روی همین پایه</div>
+            <div className="eyebrow">مسیر توسعه</div>
             <div className="roadmap-points">
               <div>
+                <strong>فروشگاه</strong>
+                <p>کاتالوگ زنده، خبرهای قابل مدیریت و تجربه مرور حرفه‌ای برای عرضه عمومی.</p>
+              </div>
+              <div>
                 <strong>آکادمی</strong>
-                <p>دوره، بوت‌کمپ، اشتراک آموزشی و محتوای ویژه.</p>
+                <p>دوره‌ها، بوت‌کمپ‌ها و محتوای آموزشی می‌توانند روی همین زبان طراحی اضافه شوند.</p>
               </div>
               <div>
                 <strong>بازارچه ایجنت</strong>
-                <p>لیست ایجنت‌ها، فروشنده‌ها، کمیسیون و لیست ویژه.</p>
-              </div>
-              <div>
-                <strong>فروش واقعی</strong>
-                <p>اتصال به هسته سفارش، کوپن، پرداخت و OTP در فاز بعد.</p>
+                <p>در فاز بعد، سرویس‌ها و فروشندگان جدید بدون تغییر در معماری اصلی به همین ویترین متصل می‌شوند.</p>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="section section-last">
-        <div className="container section-stack">
-          <div className="surface support-strip">
-            <div>
-              <small>{homePageContent.announcement.label}</small>
-              <strong>{homePageContent.announcement.title}</strong>
+      {homePageContent.announcement.isVisible ? (
+        <section className="section section-last deferred-section">
+          <div className="container section-stack">
+            <div className="surface support-strip">
+              <div>
+                <small>{homePageContent.announcement.label}</small>
+                <strong>{homePageContent.announcement.title}</strong>
+              </div>
+              <p>{homePageContent.announcement.description}</p>
+              <PageAction
+                href={homePageContent.announcement.ctaHref}
+                label={homePageContent.announcement.ctaLabel}
+                className="btn btn-primary"
+              />
             </div>
-            <p>{homePageContent.announcement.description}</p>
-            <Link href={homePageContent.announcement.ctaHref} className="btn btn-primary">
-              {homePageContent.announcement.ctaLabel}
-            </Link>
           </div>
-        </div>
-      </section>
-    </>
+        </section>
+      ) : null}
+    </div>
   );
 }

@@ -11,7 +11,7 @@ export default async function NewsPage() {
   const articles = await getStoreNews();
 
   return (
-    <section className="section">
+    <section className="section section-muted">
       <div className="container section-stack">
         <div className="surface listing-hero">
           <div>
@@ -32,7 +32,7 @@ export default async function NewsPage() {
         {articles.length > 0 ? (
           <div className="news-page-grid">
             {articles.map((article) => (
-              <Link href={`/news/${article.slug}`} className="surface news-card" key={article.id}>
+              <Link href={`/news/${article.slug}`} className="surface news-card" key={article.id} prefetch={false}>
                 {article.imageUrl ? (
                   <div className="news-media-shell">
                     <Image
@@ -40,6 +40,7 @@ export default async function NewsPage() {
                       src={article.imageUrl}
                       alt={article.title}
                       fill
+                      quality={65}
                       sizes="(max-width: 840px) 100vw, (max-width: 1160px) 50vw, 33vw"
                     />
                   </div>

@@ -11,6 +11,7 @@ export type Product = {
   comparePrice: number;
   currency: "IRR";
   delivery: string;
+  deliveryNote?: string;
   shortDescription: string;
   description: string;
   features: string[];
@@ -21,7 +22,11 @@ export type Product = {
   isFeatured?: boolean;
   status?: ProductStatus;
   imageUrl?: string;
+  galleryImageUrls?: string[];
   videoUrl?: string;
+  supportNote?: string;
+  trustNote?: string;
+  priority?: number;
 };
 
 export const categories: Array<{

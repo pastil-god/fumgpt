@@ -11,17 +11,23 @@ type Props = {
 
 export function NewsSection({ articles, content }: Props) {
   const resolvedContent = content || {
-    eyebrow: "News",
+    isVisible: true,
+    eyebrow: "اخبار",
     title: "آخرین خبرها و مقاله‌های فروشگاه",
     description:
-      "این بخش برای انتشار سریع خبر، مقاله، آپدیت محصول و اطلاعیه‌های مهم از داخل CMS طراحی شده است.",
-    ctaLabel: "همه خبرها"
+      "به‌روزرسانی محصولات، خبرهای جدید و اطلاعیه‌های مهم فروشگاه از طریق CMS منتشر می‌شوند و همین‌جا در دسترس کاربران قرار می‌گیرند.",
+    ctaLabel: "مشاهده همه خبرها",
+    ctaHref: "/news",
+    adminCalloutLabel: "مدیریت محتوا",
+    adminCalloutTitle: "خبرها، بنرها و محتوای اصلی فروشگاه را بدون کدنویسی به‌روزرسانی کن",
+    adminCalloutDescription:
+      "این بخش به Contentful متصل می‌شود تا مدیر محتوا بتواند خبر، تصویر، ویدئو و متن را از داشبورد ویرایش کند."
   };
   const safeArticles = articles || [];
 
   if (safeArticles.length === 0) {
     return (
-      <section className="section news-section">
+      <section className="section news-section deferred-section">
         <div className="container section-stack">
           <div className="section-header">
             <div>
@@ -34,11 +40,10 @@ export function NewsSection({ articles, content }: Props) {
           <div className="surface empty-state-card">
             <strong>هنوز خبری منتشر نشده است</strong>
             <p className="muted">
-              بعد از اتصال CMS، خبرها و مقاله‌های جدید از همین بخش روی صفحه اصلی نمایش داده
-              می‌شوند.
+              بعد از اتصال CMS یا انتشار اولین خبر، این بخش به‌صورت خودکار تازه‌ترین محتوا را نمایش می‌دهد.
             </p>
-            <Link href="/news" className="btn btn-ghost">
-              صفحه خبرها
+            <Link href={resolvedContent.ctaHref} className="btn btn-secondary">
+              {resolvedContent.ctaLabel}
             </Link>
           </div>
         </div>
@@ -49,7 +54,7 @@ export function NewsSection({ articles, content }: Props) {
   const [lead, ...rest] = safeArticles;
 
   return (
-    <section className="section news-section">
+    <section className="section news-section deferred-section">
       <div className="container section-stack">
         <div className="section-header">
           <div>
@@ -57,13 +62,13 @@ export function NewsSection({ articles, content }: Props) {
             <h2 className="section-title">{resolvedContent.title}</h2>
             <p className="muted section-text">{resolvedContent.description}</p>
           </div>
-          <Link href="/news" className="btn btn-ghost">
+          <Link href={resolvedContent.ctaHref} className="btn btn-secondary">
             {resolvedContent.ctaLabel}
           </Link>
         </div>
 
         <div className="news-grid">
-          <Link href={`/news/${lead.slug}`} className="surface news-card news-card-lead">
+          <Link href={`/news/${lead.slug}`} className="surface news-card news-card-lead" prefetch={false}>
             {lead.imageUrl ? (
               <div className="news-media-shell">
                 <Image
@@ -71,6 +76,7 @@ export function NewsSection({ articles, content }: Props) {
                   src={lead.imageUrl}
                   alt={lead.title}
                   fill
+                  quality={65}
                   sizes="(max-width: 840px) 100vw, (max-width: 1160px) 50vw, 60vw"
                 />
               </div>
@@ -85,13 +91,13 @@ export function NewsSection({ articles, content }: Props) {
               </div>
               <h3>{lead.title}</h3>
               <p>{lead.excerpt}</p>
-              <p className="muted">{lead.body}</p>
+              <span className="text-link">{lead.ctaLabel || "مطالعه خبر"}</span>
             </div>
           </Link>
 
           <div className="news-stack">
             {rest.map((article) => (
-              <Link href={`/news/${article.slug}`} className="surface news-card" key={article.id}>
+              <Link href={`/news/${article.slug}`} className="surface news-card" key={article.id} prefetch={false}>
                 {article.imageUrl ? (
                   <div className="news-media-shell">
                     <Image
@@ -99,6 +105,7 @@ export function NewsSection({ articles, content }: Props) {
                       src={article.imageUrl}
                       alt={article.title}
                       fill
+                      quality={65}
                       sizes="(max-width: 840px) 100vw, (max-width: 1160px) 50vw, 40vw"
                     />
                   </div>
@@ -121,15 +128,12 @@ export function NewsSection({ articles, content }: Props) {
 
         <div className="surface cms-callout">
           <div>
-            <small>CMS Ready</small>
-            <strong>مدیر محتوا می‌تواند خبر، تصویر، ویدئو و متن را بدون کدنویسی منتشر کند</strong>
+            <small>{resolvedContent.adminCalloutLabel}</small>
+            <strong>{resolvedContent.adminCalloutTitle}</strong>
           </div>
-          <p>
-            با اتصال Contentful، این بخش و محتوای محصولات از طریق داشبورد قابل ویرایش می‌شود و
-            دیگر لازم نیست برای هر تغییر سراغ کد بیایید.
-          </p>
-          <Link href="/news" className="btn btn-ghost">
-            مشاهده خبرها
+          <p>{resolvedContent.adminCalloutDescription}</p>
+          <Link href={resolvedContent.ctaHref} className="btn btn-secondary">
+            {resolvedContent.ctaLabel}
           </Link>
         </div>
       </div>

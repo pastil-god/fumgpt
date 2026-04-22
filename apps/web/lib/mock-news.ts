@@ -8,6 +8,10 @@ export type NewsArticle = {
   videoUrl?: string;
   publishedAt: string;
   isFeatured?: boolean;
+  status?: "active" | "draft";
+  ctaLabel?: string;
+  ctaHref?: string;
+  priority?: number;
 };
 
 export const newsArticles: NewsArticle[] = [

@@ -1,19 +1,10 @@
-# راه‌اندازی Contentful برای مدیریت محصولات و خبرها
+# راه‌اندازی Contentful برای مدیریت فروشگاه FumGPT
 
-این پروژه طوری آماده شده که اگر `CONTENTFUL_SPACE_ID` و `CONTENTFUL_DELIVERY_TOKEN` را در `.env` وارد کنید، داده‌های سایت از Contentful خوانده می‌شوند. اگر این متغیرها خالی باشند، سایت به‌صورت خودکار از داده‌های محلی فعلی استفاده می‌کند و از کار نمی‌افتد.
+این پروژه طوری آماده شده که اگر `CONTENTFUL_SPACE_ID` و `CONTENTFUL_DELIVERY_TOKEN` را در `.env` وارد کنید، داده‌های سایت از Contentful خوانده می‌شوند. اگر این متغیرها خالی باشند یا اتصال CMS خطا بدهد، سایت از داده‌های محلی fallback استفاده می‌کند و از کار نمی‌افتد.
 
-## چرا Contentful؟
+## 1. متغیرهای محیطی
 
-- داشبورد ساده و مناسب کاربر غیر فنی
-- امکان ایجاد و ویرایش خبر، مقاله و محصول بدون دست‌کاری کد
-- کتابخانه فایل برای آپلود تصویر و فایل ویدئو
-- مناسب اتصال مستقیم به Next.js بدون ساخت پنل اختصاصی
-
-## 1. ساخت Space و API Token
-
-1. در Contentful یک `Space` جدید بسازید.
-2. از بخش `Settings > API keys` یک Delivery Token بگیرید.
-3. مقادیر زیر را در فایل `.env` پروژه وارد کنید:
+این مقادیر را در فایل `.env` وارد کنید:
 
 ```env
 CONTENTFUL_SPACE_ID=your_space_id
@@ -22,107 +13,199 @@ CONTENTFUL_ENVIRONMENT=master
 NEXT_PUBLIC_CMS_DASHBOARD_URL=https://app.contentful.com/spaces/your-space-id
 ```
 
-## 2. مدل‌های محتوا
+پیشنهاد می‌شود این fallbackها را هم تنظیم کنید:
 
-دو Content Type اصلی بسازید:
+```env
+NEXT_PUBLIC_SITE_URL=https://your-domain.com
+NEXT_PUBLIC_BRAND_NAME=FumGPT
+NEXT_PUBLIC_SUPPORT_EMAIL=support@example.com
+NEXT_PUBLIC_SUPPORT_PHONE=0900 000 0000
+NEXT_PUBLIC_SUPPORT_ADDRESS=آدرس یا توضیح مسیر پشتیبانی
+NEXT_PUBLIC_SUPPORT_TELEGRAM=https://t.me/example
+NEXT_PUBLIC_SUPPORT_WHATSAPP=https://wa.me/989000000000
+NEXT_PUBLIC_INSTAGRAM=https://instagram.com/example
+```
 
-### `product`
+## 2. مدل‌های محتوایی پیشنهادی
 
-فیلدهای پیشنهادی:
+برای ساده ماندن کار تیم محتوا، ساختار CMS به 5 مدل اصلی تقسیم شده است:
 
-| Field ID | Type | توضیح |
-|---|---|---|
-| `title` | Short text | نام محصول |
-| `slug` | Short text | اسلاگ یکتا مثل `chatgpt-business` |
-| `category` | Short text | یکی از این مقادیر: `ai-access`, `creative`, `coding`, `professional` |
-| `brand` | Short text | برند محصول |
-| `price` | Number | قیمت فعلی |
-| `comparePrice` | Number | قیمت قبل |
-| `delivery` | Short text | روش تحویل |
-| `shortDescription` | Long text | توضیح کوتاه |
-| `description` | Long text | توضیح کامل صفحه محصول |
-| `features` | List of short text | ویژگی‌ها |
-| `notes` | List of short text | نکات مهم |
-| `badge` | Short text | متن تخفیف مثل `۴۵٪ تخفیف` |
-| `coverLabel` | Short text | متن روی کاور کارت |
-| `accent` | Short text | یکی از: `emerald`, `cyan`, `violet`, `amber` |
-| `isFeatured` | Boolean | برای نمایش در هیرو و صفحه اصلی |
-| `status` | Short text | یکی از: `active`, `draft`, `archived` |
-| `image` | Media | تصویر محصول |
-| `videoFile` | Media | فایل ویدئوی محصول |
-| `videoUrl` | Short text | لینک ویدئو در صورت استفاده از ویدئوی خارجی |
-
-### `newsArticle`
-
-فیلدهای پیشنهادی:
-
-| Field ID | Type | توضیح |
-|---|---|---|
-| `title` | Short text | تیتر خبر |
-| `slug` | Short text | اسلاگ خبر |
-| `excerpt` | Long text | خلاصه خبر |
-| `body` | Long text | متن کامل خبر |
-| `publishedAt` | Date & time | تاریخ انتشار |
-| `isFeatured` | Boolean | برای اولویت نمایش |
-| `image` | Media | تصویر خبر |
-| `videoFile` | Media | فایل ویدئو |
-| `videoUrl` | Short text | لینک ویدئو اگر فایل آپلود نمی‌کنید |
+1. `siteSettings`
+2. `homepageSettings`
+3. `navigationItem`
+4. `product`
+5. `newsArticle`
 
 ### `siteSettings`
 
-این نوع محتوا برای کنترل هیرو و بنر صفحه اصلی است. پیشنهاد می‌شود فقط یک ورودی از آن داشته باشید.
+فقط **یک entry** از این نوع بسازید. این مدل برای محتوای ثابت کل فروشگاه است.
+
+| Field ID | Type | توضیح | ضروری |
+|---|---|---|---|
+| `brandName` | Short text | نام برند | بله |
+| `siteTitle` | Short text | عنوان کلی سایت برای متادیتا | بله |
+| `siteDescription` | Long text | توضیح کلی سایت | بله |
+| `brandTagline` | Short text | زیرعنوان برند در هدر/فوتر | بله |
+| `logo` | Media | لوگوی برند | خیر |
+| `topBarText` | Short text | متن اصلی نوار بالای سایت | خیر |
+| `topBarHighlights` | List of short text | آیتم‌های کوتاه نوار بالایی | خیر |
+| `supportPhone` | Short text | شماره پشتیبانی | بله |
+| `supportEmail` | Short text | ایمیل پشتیبانی | بله |
+| `supportAddress` | Long text | آدرس یا توضیح مسیر ارتباط | خیر |
+| `supportCtaLabel` | Short text | متن دکمه ارتباط/پشتیبانی | بله |
+| `supportCtaHref` | Short text | لینک دکمه ارتباط | بله |
+| `telegramUrl` | Short text | لینک تلگرام | خیر |
+| `instagramUrl` | Short text | لینک اینستاگرام | خیر |
+| `whatsappUrl` | Short text | لینک واتساپ | خیر |
+| `footerText` | Long text | متن توضیحی فوتر | خیر |
+| `copyrightText` | Short text | متن کپی‌رایت | خیر |
+| `trustBadges` | List of short text | آیتم‌های اعتماد مثل تحویل دیجیتال | خیر |
+
+### `homepageSettings`
+
+فقط **یک entry** از این نوع بسازید. این مدل برای کنترل محتوای صفحه اصلی است.
 
 | Field ID | Type | توضیح |
 |---|---|---|
 | `heroEyebrow` | Short text | متن بالای هیرو |
-| `heroStatusLabel` | Short text | لیبل وضعیت کنار هیرو |
+| `heroStatusLabel` | Short text | برچسب وضعیت هیرو |
 | `heroTitleLead` | Short text | بخش اول تیتر هیرو |
 | `heroTitleHighlight` | Short text | بخش هایلایت تیتر هیرو |
 | `heroTitleTail` | Short text | بخش آخر تیتر هیرو |
-| `heroDescription` | Long text | توضیح زیر تیتر |
-| `heroPrimaryCtaLabel` | Short text | متن دکمه اول |
-| `heroPrimaryCtaHref` | Short text | لینک دکمه اول |
-| `heroSecondaryCtaLabel` | Short text | متن دکمه دوم |
-| `heroSecondaryCtaHref` | Short text | لینک دکمه دوم |
-| `heroProofTitle` | Short text | تیتر نوار اعتماد هیرو |
-| `heroProofText` | Short text | متن نوار اعتماد هیرو |
-| `newsEyebrow` | Short text | متن بالای سکشن خبر |
-| `newsTitle` | Short text | تیتر سکشن خبر |
-| `newsDescription` | Long text | توضیح سکشن خبر |
-| `newsCtaLabel` | Short text | متن دکمه رفتن به صفحه خبرها |
-| `announcementLabel` | Short text | لیبل بنر پایین صفحه اصلی |
-| `announcementTitle` | Short text | تیتر بنر پایین صفحه اصلی |
-| `announcementDescription` | Long text | متن بنر پایین صفحه اصلی |
-| `announcementCtaLabel` | Short text | متن دکمه بنر |
-| `announcementCtaHref` | Short text | لینک دکمه بنر |
+| `heroDescription` | Long text | توضیح زیر تیتر هیرو |
+| `heroPrimaryCtaLabel` | Short text | متن CTA اصلی |
+| `heroPrimaryCtaHref` | Short text | لینک CTA اصلی |
+| `heroSecondaryCtaLabel` | Short text | متن CTA دوم |
+| `heroSecondaryCtaHref` | Short text | لینک CTA دوم |
+| `heroProofTitle` | Short text | تیتر نوار اعتماد داخل هیرو |
+| `heroProofText` | Short text | متن نوار اعتماد داخل هیرو |
+| `heroQuickStartTitle` | Short text | تیتر بخش شروع سریع |
+| `heroQuickStartText` | Long text | متن بخش شروع سریع |
+| `heroMarketLabel` | Short text | لیبل بنر سمت راست هیرو |
+| `heroMarketTitle` | Short text | تیتر بنر سمت راست هیرو |
+| `heroMarketDescription` | Long text | توضیح بنر سمت راست هیرو |
+| `heroMarketBadge` | Short text | برچسب بنر سمت راست هیرو |
+| `showCategorySection` | Boolean | نمایش/عدم نمایش بخش دسته‌بندی |
+| `categoriesEyebrow` | Short text | متن بالای بخش دسته‌بندی |
+| `categoriesTitle` | Short text | تیتر بخش دسته‌بندی |
+| `categoriesDescription` | Long text | توضیح بخش دسته‌بندی |
+| `categoriesCtaLabel` | Short text | متن دکمه بخش دسته‌بندی |
+| `categoriesCtaHref` | Short text | لینک دکمه بخش دسته‌بندی |
+| `showFeaturedSection` | Boolean | نمایش/عدم نمایش بخش محصولات منتخب |
+| `featuredEyebrow` | Short text | متن بالای بخش محصولات منتخب |
+| `featuredTitle` | Short text | تیتر بخش محصولات منتخب |
+| `featuredDescription` | Long text | توضیح بخش محصولات منتخب |
+| `featuredCtaLabel` | Short text | متن دکمه بخش محصولات منتخب |
+| `featuredCtaHref` | Short text | لینک دکمه بخش محصولات منتخب |
+| `showNewsSection` | Boolean | نمایش/عدم نمایش بخش خبرها |
+| `newsEyebrow` | Short text | متن بالای بخش خبر |
+| `newsTitle` | Short text | تیتر بخش خبر |
+| `newsDescription` | Long text | توضیح بخش خبر |
+| `newsCtaLabel` | Short text | متن دکمه بخش خبر |
+| `newsCtaHref` | Short text | لینک دکمه بخش خبر |
+| `newsAdminCalloutLabel` | Short text | لیبل باکس مدیریت محتوا |
+| `newsAdminCalloutTitle` | Short text | تیتر باکس مدیریت محتوا |
+| `newsAdminCalloutDescription` | Long text | متن باکس مدیریت محتوا |
+| `showSupportBanner` | Boolean | نمایش/عدم نمایش نوار پشتیبانی پایین صفحه |
+| `announcementLabel` | Short text | لیبل نوار پایین صفحه |
+| `announcementTitle` | Short text | تیتر نوار پایین صفحه |
+| `announcementDescription` | Long text | متن نوار پایین صفحه |
+| `announcementCtaLabel` | Short text | متن دکمه نوار پایین صفحه |
+| `announcementCtaHref` | Short text | لینک دکمه نوار پایین صفحه |
 
-## 3. مدیریت تصویر و ویدئو
+### `navigationItem`
 
-- برای تصویر و ویدئو از فیلدهای `Media` استفاده کنید.
-- اگر ویدئو را مستقیم در Contentful آپلود نمی‌کنید، می‌توانید فقط `videoUrl` را پر کنید.
-- در صفحه محصول، اگر ویدئو وجود داشته باشد، سایت آن را به‌صورت پلیر یا لینک نمایش می‌دهد.
+برای هر آیتم منو یک entry جدا بسازید.
 
-## 4. فونت B Zar
+| Field ID | Type | توضیح |
+|---|---|---|
+| `label` | Short text | متن لینک |
+| `href` | Short text | مسیر یا لینک |
+| `location` | Short text | یکی از `primary`, `footer`, `both` |
+| `priority` | Number | عدد بزرگ‌تر یعنی نمایش بالاتر |
+| `status` | Short text | `active` یا `draft` |
+| `openInNewTab` | Boolean | اگر لینک خارجی است |
 
-در کد، فونت سایت به‌صورت `B Zar`-first تنظیم شده و یک فونت فارسی fallback هم برای نمایش درست متن‌ها فعال شده است.
+### `product`
 
-اگر می‌خواهید روی تمام دستگاه‌ها دقیقاً خود فونت `B Zar` نمایش داده شود:
+هر محصول یک entry جداگانه است.
 
-1. فایل‌های لایسنس‌دار فونت `B Zar` را تهیه کنید.
-2. آن‌ها را در `apps/web/public/fonts/` قرار دهید.
-3. در صورت نیاز، بعداً می‌توانیم `@font-face` یا `next/font/local` را هم به آن اضافه کنیم.
+| Field ID | Type | توضیح | ضروری |
+|---|---|---|---|
+| `title` | Short text | نام محصول | بله |
+| `slug` | Short text | اسلاگ یکتا | بله |
+| `shortDescription` | Long text | توضیح کوتاه کارت محصول | بله |
+| `description` | Long text | متن کامل صفحه محصول | بله |
+| `category` | Short text | یکی از `ai-access`, `creative`, `coding`, `professional` | بله |
+| `brand` | Short text | برند محصول | بله |
+| `price` | Number | قیمت فعلی | بله |
+| `comparePrice` | Number | قیمت قبلی | بهتر است |
+| `badge` | Short text | متن تخفیف، اگر خالی باشد محاسبه می‌شود | خیر |
+| `coverLabel` | Short text | متن کوتاه روی کاور کارت | خیر |
+| `accent` | Short text | یکی از `emerald`, `cyan`, `violet`, `amber` | خیر |
+| `delivery` | Short text | نوع تحویل | بله |
+| `deliveryNote` | Long text | توضیح بیشتر درباره تحویل | خیر |
+| `features` | List of short text | ویژگی‌ها | خیر |
+| `notes` | List of short text | نکات مهم | خیر |
+| `image` | Media | تصویر اصلی | بهتر است |
+| `galleryImages` | Media (multiple) | تصاویر بیشتر محصول | خیر |
+| `videoFile` | Media | فایل ویدئو | خیر |
+| `videoUrl` | Short text | لینک ویدئو | خیر |
+| `trustNote` | Long text | متن اعتمادساز محصول | خیر |
+| `supportNote` | Long text | متن پشتیبانی یا راهنمای خرید | خیر |
+| `isFeatured` | Boolean | نمایش در ویترین اصلی | خیر |
+| `status` | Short text | `active`, `draft`, `archived` | بله |
+| `priority` | Number | اولویت نمایش | خیر |
 
-## 5. رفتار فعلی پروژه
+### `newsArticle`
 
-- `صفحه اصلی`: خبرها از CMS بالای هوم‌پیج نمایش داده می‌شوند.
-- `هیرو و بنر صفحه اصلی`: اگر `siteSettings` ساخته شود، از CMS خوانده می‌شوند.
-- `محصولات`: لیست محصولات و جزئیات محصول از CMS خوانده می‌شوند.
-- `صفحه خبرها`: لیست و جزئیات خبرها از CMS خوانده می‌شوند.
-- `Fallback`: اگر CMS هنوز تنظیم نشده باشد، داده‌های محلی فعلی لود می‌شوند.
+هر خبر یا مقاله یک entry جداگانه است.
 
-## 6. پیشنهاد برای تیم محتوا
+| Field ID | Type | توضیح | ضروری |
+|---|---|---|---|
+| `title` | Short text | تیتر خبر | بله |
+| `slug` | Short text | اسلاگ یکتا | بله |
+| `summary` | Long text | خلاصه خبر | بله |
+| `body` | Long text | متن کامل خبر | بله |
+| `image` | Media | تصویر خبر | بهتر است |
+| `publishedAt` | Date & time | تاریخ انتشار | بله |
+| `status` | Short text | `active` یا `draft` | بله |
+| `isFeatured` | Boolean | اولویت بیشتر در صفحه اصلی | خیر |
+| `ctaLabel` | Short text | متن CTA اختیاری | خیر |
+| `ctaHref` | Short text | لینک CTA اختیاری | خیر |
+| `videoFile` | Media | فایل ویدئو | خیر |
+| `videoUrl` | Short text | لینک ویدئو | خیر |
+| `priority` | Number | اولویت نمایش | خیر |
 
-- برای هر محصول حتماً `slug`, `category`, `price`, `comparePrice`, `image` و `isFeatured` را مشخص کنید.
-- برای اینکه محصول در سایت عمومی دیده شود، `status` را روی `active` بگذارید.
-- برای خبرها بهتر است همیشه `image` و `publishedAt` پر شود تا سکشن خبر مرتب‌تر دیده شود.
-- برای مدیریت مستقیم محتوا می‌توانید `NEXT_PUBLIC_CMS_DASHBOARD_URL` را روی لینک Space خودتان بگذارید تا از داخل حساب کاربری هم دسترسی سریع داشته باشید.
+## 3. رفتار انتشار
+
+- اگر `product.status = active` باشد، محصول در سایت عمومی نمایش داده می‌شود.
+- اگر `product.status = draft` یا `archived` باشد، در سایت عمومی نمایش داده نمی‌شود.
+- اگر `newsArticle.status = active` باشد، خبر نمایش داده می‌شود.
+- اگر `newsArticle.status = draft` باشد، فقط داخل CMS می‌ماند و در سایت عمومی دیده نمی‌شود.
+- اگر entry ساخته شده ولی Publish نشده باشد، در سایت عمومی نمایش داده نمی‌شود.
+
+## 4. fallback mode
+
+اگر Contentful تنظیم نشده باشد یا درخواست CMS خطا بدهد:
+
+- هدر، فوتر و اطلاعات پشتیبانی از fallback داخلی خوانده می‌شوند.
+- محتوای صفحه اصلی از fallback داخلی خوانده می‌شود.
+- محصولات و خبرها از داده‌های محلی پروژه خوانده می‌شوند.
+- سایت بالا می‌آید و برای دمو یا توسعه از کار نمی‌افتد.
+
+## 5. پیشنهاد ساخت entryهای اصلی
+
+برای اینکه تیم سردرگم نشود، این نام‌گذاری را پیشنهاد می‌کنیم:
+
+- `siteSettings`: عنوان داخلی `main-site-settings`
+- `homepageSettings`: عنوان داخلی `main-homepage-settings`
+- `navigationItem`: برای هر لینک، نامی مثل `nav-home`, `nav-products`
+- `product`: عنوان داخلی همان نام محصول
+- `newsArticle`: عنوان داخلی همان تیتر خبر
+
+## 6. راهنمای مدیریتی روزمره
+
+راهنمای عملی نقش‌ها، کارهای روزانه ادمین‌ها و روش افزودن محصول/خبر را در این فایل ببینید:
+
+- [راهنمای مدیریت محتوا](cms-admin-guide-fa.md)

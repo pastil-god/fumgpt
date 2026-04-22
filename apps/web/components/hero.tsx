@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Product } from "@/lib/mock-data";
-import type { HomePageContent } from "@/lib/mock-homepage";
-import { siteConfig } from "@/lib/site";
+import { homePageContent, type HomePageContent } from "@/lib/mock-homepage";
+import { fallbackStorefrontSettings, isExternalHref, type StorefrontSettings } from "@/lib/site";
 
 type Props = {
   featured?: Product[];
@@ -12,10 +12,66 @@ type Props = {
     maxDiscount: number;
   };
   content?: HomePageContent["hero"];
+  storefront?: Pick<StorefrontSettings, "trustBadges" | "support">;
 };
 
-export function Hero({ featured, stats, content }: Props) {
-  const heroContent = content;
+function formatStat(value: number) {
+  return value.toLocaleString("fa-IR");
+}
+
+function HeroSupportLink({
+  href,
+  label
+}: {
+  href: string;
+  label: string;
+}) {
+  if (isExternalHref(href)) {
+    return (
+      <a className="chip chip-link" href={href} target="_blank" rel="noreferrer">
+        {label}
+      </a>
+    );
+  }
+
+  return (
+    <Link className="chip chip-link" href={href}>
+      {label}
+    </Link>
+  );
+}
+
+function HeroAction({
+  href,
+  label,
+  className
+}: {
+  href: string;
+  label: string;
+  className: string;
+}) {
+  if (isExternalHref(href)) {
+    return (
+      <a className={className} href={href} target="_blank" rel="noreferrer">
+        {label}
+      </a>
+    );
+  }
+
+  return (
+    <Link className={className} href={href}>
+      {label}
+    </Link>
+  );
+}
+
+export function Hero({ featured, stats, content, storefront }: Props) {
+  const resolvedStorefront = storefront || {
+    trustBadges: fallbackStorefrontSettings.trustBadges,
+    support: fallbackStorefrontSettings.support
+  };
+  const resolvedContent = content || homePageContent.hero;
+  const heroTrustBadges = resolvedStorefront.trustBadges.slice(0, 3);
 
   if (!stats) {
     return (
@@ -23,38 +79,48 @@ export function Hero({ featured, stats, content }: Props) {
         <div className="container hero-shell">
           <div className="hero-grid">
             <div className="hero-copy surface hero-copy-card">
-              <div className="hero-badge-row">
-                <div className="eyebrow">
-                  {heroContent?.eyebrow || "فروشگاه حرفه‌ای سرویس‌های هوش مصنوعی"}
+              <div className="hero-copy-main">
+                <div className="hero-badge-row">
+                  <div className="eyebrow">{resolvedContent.eyebrow}</div>
+                  <span className="hero-status-pill">در حال بارگذاری</span>
                 </div>
-                <span className="hero-status-pill">در حال بارگذاری</span>
+
+                <div className="hero-copy-intro">
+                  <h1>
+                    {resolvedContent.titleLead} <span>{resolvedContent.titleHighlight}</span>{" "}
+                    {resolvedContent.titleTail}
+                  </h1>
+                  <p>{resolvedContent.description}</p>
+                </div>
               </div>
 
-              <h1>
-                {heroContent?.titleLead || "خرید حرفه‌ای سرویس‌های"}{" "}
-                <span>{heroContent?.titleHighlight || "هوش مصنوعی"}</span>{" "}
-                {heroContent?.titleTail || "با تجربه‌ای شبیه یک مارکت‌پلیس سطح بالا"}
-              </h1>
-              <p>
-                {heroContent?.description ||
-                  "اطلاعات هیرو هنوز آماده نشده است. چند لحظه دیگر دوباره تلاش کنید یا پس از بارگذاری داده‌ها، آمار و پیشنهادهای منتخب نمایش داده می‌شوند."}
-              </p>
+              <div className="hero-secondary-grid">
+                <div className="hero-search">
+                  <div>
+                    <strong>{resolvedContent.quickStartTitle}</strong>
+                    <span>{resolvedContent.quickStartText}</span>
+                  </div>
+                  <Link className="chip chip-link" href="/products" prefetch={false}>
+                    مرور فروشگاه
+                  </Link>
+                </div>
+              </div>
             </div>
 
             <div className="surface hero-market-card">
               <div className="hero-preview-header">
                 <div>
-                  <span className="preview-pill">نمای کلی فروشگاه</span>
-                  <h2>ویترین منتخب در حال آماده‌سازی است</h2>
+                  <span className="preview-pill">{resolvedContent.marketLabel}</span>
+                  <h2>{resolvedContent.marketTitle}</h2>
                 </div>
               </div>
 
-              <div className="launch-banner accent-grid">
+              <div className="hero-market-feature">
                 <div>
-                  <small>در حال بارگذاری</small>
-                  <strong>اطلاعات آماری و محصولات منتخب به‌زودی نمایش داده می‌شوند</strong>
+                  <small>{resolvedContent.marketLabel}</small>
+                  <strong>{resolvedContent.marketDescription}</strong>
                 </div>
-                <p>تا زمانی که داده‌ها آماده شوند، این بخش به‌صورت امن بدون خطا رندر می‌شود.</p>
+                <span className="hero-market-badge">{resolvedContent.marketBadge}</span>
               </div>
             </div>
           </div>
@@ -64,60 +130,66 @@ export function Hero({ featured, stats, content }: Props) {
   }
 
   const { productCount, activeCategoryCount, brandCount, maxDiscount } = stats;
-  const safeFeatured = featured || [];
-  const resolvedContent = heroContent || {
-    eyebrow: "فروشگاه حرفه‌ای سرویس‌های هوش مصنوعی",
-    statusLabel: "لانچ زنده با کاتالوگ واقعی",
-    titleLead: "خرید حرفه‌ای سرویس‌های",
-    titleHighlight: "هوش مصنوعی",
-    titleTail: "با تجربه‌ای شبیه یک مارکت‌پلیس سطح بالا",
-    description:
-      "صفحه اصلی حالا به‌جای یک معرفی ساده، مثل ویترین یک فروشگاه حرفه‌ای رفتار می‌کند: دسته‌بندی واضح، پیشنهادهای منتخب، CTAهای روشن و نشانه‌های اعتماد برای خرید سریع‌تر و مطمئن‌تر.",
-    primaryCtaLabel: "مشاهده محصولات منتخب",
-    primaryCtaHref: "/products",
-    secondaryCtaLabel: "ورود به بازارچه ایجنت",
-    secondaryCtaHref: "/agents",
-    proofTitle: "مشاوره قبل از خرید",
-    proofText: "برای انتخاب پلن مناسب، تحویل و فعال‌سازی سریع"
-  };
+  const safeFeatured = (featured || []).slice(0, 2);
 
   return (
     <section className="hero-section">
       <div className="container hero-shell">
         <div className="hero-grid">
           <div className="hero-copy surface hero-copy-card">
-            <div className="hero-badge-row">
-              <div className="eyebrow">{resolvedContent.eyebrow}</div>
-              <span className="hero-status-pill">{resolvedContent.statusLabel}</span>
-            </div>
+            <div className="hero-copy-main">
+              <div className="hero-badge-row">
+                <div className="eyebrow">{resolvedContent.eyebrow}</div>
+                <span className="hero-status-pill">{resolvedContent.statusLabel}</span>
+              </div>
 
-            <h1>
-              {resolvedContent.titleLead} <span>{resolvedContent.titleHighlight}</span>{" "}
-              {resolvedContent.titleTail}
-            </h1>
-            <p>{resolvedContent.description}</p>
+              <div className="hero-copy-intro">
+                <h1>
+                  {resolvedContent.titleLead} <span>{resolvedContent.titleHighlight}</span>{" "}
+                  {resolvedContent.titleTail}
+                </h1>
+                <p>{resolvedContent.description}</p>
+              </div>
+            </div>
 
             <div className="hero-cta-row">
-              <Link className="btn btn-primary btn-large" href={resolvedContent.primaryCtaHref}>
-                {resolvedContent.primaryCtaLabel}
-              </Link>
-              <Link className="btn btn-secondary btn-large" href={resolvedContent.secondaryCtaHref}>
-                {resolvedContent.secondaryCtaLabel}
-              </Link>
+              <HeroAction
+                className="btn btn-primary btn-large"
+                href={resolvedContent.primaryCtaHref}
+                label={resolvedContent.primaryCtaLabel}
+              />
+              <HeroAction
+                className="btn btn-secondary btn-large"
+                href={resolvedContent.secondaryCtaHref}
+                label={resolvedContent.secondaryCtaLabel}
+              />
             </div>
 
-            <div className="hero-proof-strip">
-              <div>
-                <strong>{resolvedContent.proofTitle}</strong>
-                <span>{resolvedContent.proofText}</span>
+            <div className="hero-secondary-grid">
+              <div className="hero-search">
+                <div>
+                  <strong>{resolvedContent.quickStartTitle}</strong>
+                  <span>{resolvedContent.quickStartText}</span>
+                </div>
+                <Link className="chip chip-link" href="/products" prefetch={false}>
+                  همه دسته‌ها
+                </Link>
               </div>
-              <Link className="chip chip-link" href={siteConfig.telegram}>
-                گفت‌وگو در تلگرام
-              </Link>
+
+              <div className="hero-proof-strip">
+                <div>
+                  <strong>{resolvedContent.proofTitle}</strong>
+                  <span>{resolvedContent.proofText}</span>
+                </div>
+                <HeroSupportLink
+                  href={resolvedStorefront.support.helpCtaHref}
+                  label={resolvedStorefront.support.helpCtaLabel}
+                />
+              </div>
             </div>
 
             <div className="hero-trust-row">
-              {siteConfig.trustPills.map((pill) => (
+              {heroTrustBadges.map((pill) => (
                 <span key={pill} className="chip">
                   {pill}
                 </span>
@@ -126,20 +198,20 @@ export function Hero({ featured, stats, content }: Props) {
 
             <div className="hero-stats">
               <div className="stat-card stat-card-emphasis">
-                <strong>{productCount}</strong>
-                <span>محصول واقعی برای لانچ</span>
+                <strong>{formatStat(productCount)}</strong>
+                <span>محصول آماده نمایش در فروشگاه</span>
               </div>
               <div className="stat-card">
-                <strong>{activeCategoryCount}</strong>
-                <span>دسته‌بندی تخصصی و مرتب</span>
+                <strong>{formatStat(activeCategoryCount)}</strong>
+                <span>دسته‌بندی اصلی برای شروع سریع</span>
               </div>
               <div className="stat-card">
-                <strong>{brandCount}</strong>
-                <span>برند مطرح در ویترین</span>
+                <strong>{formatStat(brandCount)}</strong>
+                <span>برند و سرویس قابل ارائه</span>
               </div>
               <div className="stat-card">
-                <strong>{maxDiscount}٪</strong>
-                <span>بیشترین تخفیف فعلی</span>
+                <strong>{formatStat(maxDiscount)}٪</strong>
+                <span>بیشترین تخفیف فعال فروشگاه</span>
               </div>
             </div>
           </div>
@@ -147,30 +219,27 @@ export function Hero({ featured, stats, content }: Props) {
           <div className="surface hero-market-card">
             <div className="hero-preview-header">
               <div>
-                <span className="preview-pill">نمای کلی فروشگاه</span>
-                <h2>ویترین منتخب برای تصمیم‌گیری سریع</h2>
+                <span className="preview-pill">{resolvedContent.marketLabel}</span>
+                <h2>{resolvedContent.marketTitle}</h2>
               </div>
               <div className="hero-score-card">
-                <strong>{brandCount}+</strong>
+                <strong>{formatStat(brandCount)}+</strong>
                 <span>برند قابل ارائه</span>
               </div>
             </div>
 
-            <div className="hero-market-feature accent-grid">
+            <div className="hero-market-feature">
               <div>
-                <small>چشم‌انداز</small>
-                <strong>ساختار لانچ آماده توسعه برای آکادمی و بازارچه ایجنت</strong>
-                <p>
-                  ویترین اصلی هم‌زمان برای فروش فوری، توسعه فاز دوم و اضافه شدن سرویس‌های حرفه‌ای طراحی شده است.
-                </p>
+                <small>انتخاب سریع</small>
+                <strong>{resolvedContent.marketDescription}</strong>
               </div>
-              <span className="hero-market-badge">کاتالوگ زنده</span>
+              <span className="hero-market-badge">{resolvedContent.marketBadge}</span>
             </div>
 
             <div className="mini-product-stack">
               {safeFeatured.length > 0 ? (
                 safeFeatured.map((item) => (
-                  <Link href={`/products/${item.slug}`} key={item.id} className="mini-product">
+                  <Link href={`/products/${item.slug}`} key={item.id} className="mini-product" prefetch={false}>
                     <div className={`mini-mark accent-${item.accent}`}>{item.coverLabel}</div>
                     <div className="mini-copy">
                       <strong>{item.title}</strong>
@@ -185,43 +254,43 @@ export function Hero({ featured, stats, content }: Props) {
                 <div className="mini-product">
                   <div className="mini-copy">
                     <strong>محصولات منتخب در حال بارگذاری هستند</strong>
-                    <span>پس از آماده شدن داده‌ها، پیشنهادهای ویژه اینجا نمایش داده می‌شوند.</span>
+                    <span>پس از آماده شدن داده‌ها، پیشنهادهای ویژه این بخش به‌صورت خودکار نمایش داده می‌شوند.</span>
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="launch-banner accent-grid">
+            <div className="launch-banner">
               <div>
-                <small>اعتماد خرید</small>
-                <strong>نشانه‌های اعتماد داخل همان اولین اسکرول</strong>
+                <small>{resolvedContent.proofTitle}</small>
+                <strong>{resolvedContent.proofText}</strong>
               </div>
               <ul className="feature-list-simple compact">
-                <li>کاتالوگ واقعی فاز اول به‌جای داده نمایشی صرف</li>
-                <li>CTA مستقیم برای مشاهده محصول و ورود به مسیر خرید</li>
-                <li>چیدمان مناسب برای افزودن فروشنده، آکادمی و پلن‌های اشتراکی</li>
+                {heroTrustBadges.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
               </ul>
             </div>
           </div>
         </div>
 
-        <div className="hero-assurance-grid">
+        <div className="hero-assurance-grid deferred-block">
           <div className="surface hero-assurance-card">
             <small>تحویل و فعال‌سازی</small>
-            <strong>سناریوهای تحویل متناسب با هر سرویس از ابتدا شفاف شده‌اند</strong>
-            <p>از فعال‌سازی روی ایمیل شخصی تا تحویل دستی یا دیجیتال، وضعیت هر محصول روشن است.</p>
+            <strong>نحوه تحویل هر سرویس شفاف و قابل‌فهم نمایش داده می‌شود</strong>
+            <p>از فعال‌سازی روی ایمیل شخصی تا تحویل دستی یا دیجیتال، مسیر هر محصول از ابتدا روشن است.</p>
           </div>
 
           <div className="surface hero-assurance-card">
             <small>اعتماد خرید</small>
-            <strong>پشتیبانی، مشاوره پیش از خرید و مسیر ارتباطی مستقیم در همان Hero دیده می‌شود</strong>
-            <p>کاربر برای فهمیدن نحوه خرید یا اعتمادسازی لازم نیست چند بخش پایین‌تر اسکرول کند.</p>
+            <strong>پشتیبانی فارسی و راه ارتباطی مستقیم در همان اسکرول اول دیده می‌شود</strong>
+            <p>کاربر بدون جست‌وجوی اضافه می‌فهمد از کجا شروع کند، چطور خرید را پیگیری کند و با چه مسیری جلو برود.</p>
           </div>
 
           <div className="surface hero-assurance-card">
-            <small>جایگاه برند</small>
-            <strong>هدر اصلی حالا بیشتر شبیه داشبورد یک فروشگاه حرفه‌ای هوش مصنوعی است</strong>
-            <p>ترکیب متریک‌ها، شلف منتخب و پیام‌های اعتماد، حس برند و کیفیت را بالا می‌برد.</p>
+            <small>هویت برند</small>
+            <strong>FumGPT حالا بیشتر شبیه یک بازار دیجیتال ایرانی تمیز و آماده رشد دیده می‌شود</strong>
+            <p>چیدمان روشن، کارت‌های منظم و سلسله‌مراتب بهتر، حس یک فروشگاه حرفه‌ای و قابل اعتماد را تقویت می‌کند.</p>
           </div>
         </div>
       </div>

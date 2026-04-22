@@ -1,24 +1,34 @@
+import Image from "next/image";
 import Link from "next/link";
-import { siteConfig } from "@/lib/site";
+import { getStorefrontSettings } from "@/lib/content";
+import { getNavigationLinks, isExternalHref } from "@/lib/site";
 
-export function Footer() {
+export async function Footer() {
+  const settings = await getStorefrontSettings();
+  const footerNavigation = getNavigationLinks(settings.navigation, "footer");
+  const logoSrc = settings.logoUrl || "/logo.svg";
+  const logoIsSvg = logoSrc.toLowerCase().endsWith(".svg");
+
   return (
     <footer className="site-footer">
       <div className="container footer-grid">
         <div className="surface footer-brand-card">
           <div className="brand">
-            <img src="/logo.svg" alt="FumGPT" width="44" height="44" />
+            <Image
+              src={logoSrc}
+              alt={settings.brandName}
+              width={44}
+              height={44}
+              unoptimized={logoIsSvg}
+            />
             <div>
-              <strong>{siteConfig.name}</strong>
-              <span>ویترین حرفه‌ای محصولات دیجیتال</span>
+              <strong>{settings.brandName}</strong>
+              <span>{settings.brandTagline}</span>
             </div>
           </div>
-          <p className="muted">
-            {siteConfig.name} برای عرضه عمومی امروز با تمرکز روی کاتالوگ واقعی، تجربه مرور روان و مدیریت ساده محتوا آماده شده است و از همین حالا
-            مسیر توسعه آکادمی و بازارچه ایجنت را هم باز نگه می‌دارد.
-          </p>
+          <p className="muted">{settings.footer.description}</p>
           <div className="chip-row">
-            {siteConfig.trustPills.map((item) => (
+            {settings.trustBadges.map((item) => (
               <span className="chip" key={item}>
                 {item}
               </span>
@@ -27,12 +37,24 @@ export function Footer() {
         </div>
 
         <div className="surface footer-card">
-          <h3>لینک‌های مهم</h3>
+          <h3>بخش‌های اصلی</h3>
           <div className="footer-links">
-            <Link href="/products">فروشگاه</Link>
-            <Link href="/news">خبرها و مقاله‌ها</Link>
-            <Link href="/academy">آکادمی</Link>
-            <Link href="/agents">بازارچه ایجنت</Link>
+            {footerNavigation.map((item) =>
+              isExternalHref(item.href) ? (
+                <a
+                  key={`${item.label}-${item.href}`}
+                  href={item.href}
+                  target={item.openInNewTab ? "_blank" : undefined}
+                  rel={item.openInNewTab ? "noreferrer" : undefined}
+                >
+                  {item.label}
+                </a>
+              ) : (
+                <Link key={`${item.label}-${item.href}`} href={item.href}>
+                  {item.label}
+                </Link>
+              )
+            )}
             <Link href="/account">حساب کاربری</Link>
           </div>
         </div>
@@ -40,21 +62,25 @@ export function Footer() {
         <div className="surface footer-card">
           <h3>تماس و پشتیبانی</h3>
           <div className="footer-links">
-            <a href={siteConfig.telegram} target="_blank" rel="noreferrer">
+            <a href={settings.socials.telegram} target="_blank" rel="noreferrer">
               تلگرام
             </a>
-            <a href={siteConfig.instagram} target="_blank" rel="noreferrer">
+            <a href={settings.socials.instagram} target="_blank" rel="noreferrer">
               اینستاگرام
             </a>
-            <a href={`mailto:${siteConfig.email}`}>{siteConfig.email}</a>
-            <span>{siteConfig.phone}</span>
+            <a href={settings.socials.whatsapp} target="_blank" rel="noreferrer">
+              واتساپ
+            </a>
+            <a href={`mailto:${settings.support.email}`}>{settings.support.email}</a>
+            <span>{settings.support.phone}</span>
+            <span>{settings.support.address}</span>
           </div>
         </div>
       </div>
 
       <div className="container footer-bottom">
-        <span>© 2026 {siteConfig.name}. همه حقوق محفوظ است.</span>
-        <span>نسخه امروز: ویترین عمومی، کاتالوگ واقعی و مدیریت محتوای بیرونی</span>
+        <span>{settings.footer.copyright}</span>
+        <span>نسخه فعلی: فروشگاه عمومی، خبرها و مدیریت محتوای بیرونی</span>
       </div>
     </footer>
   );

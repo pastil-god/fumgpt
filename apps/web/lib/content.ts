@@ -4,370 +4,145 @@ import {
   getDiscountPercent,
   products as fallbackProducts,
   type Product,
-  type ProductCategory,
-  type ProductStatus
+  type ProductCategory
 } from "@/lib/mock-data";
-import { homePageContent as fallbackHomePageContent, type HomePageContent } from "@/lib/mock-homepage";
+import { homePageContent as fallbackHomePageContent } from "@/lib/mock-homepage";
 import { newsArticles as fallbackNews, type NewsArticle } from "@/lib/mock-news";
+import {
+  getContentSourceInfo,
+  isContentfulConfigured
+} from "@/lib/contentful/client";
+import {
+  loadContentfulCategoryContent,
+  loadContentfulHomepageSettings,
+  loadContentfulNavigationItems,
+  loadContentfulNews,
+  loadContentfulProducts,
+  loadContentfulSiteSettings
+} from "@/lib/contentful/loaders";
+import {
+  getContentModelDefinitionById,
+  storefrontContentModelDefinitions
+} from "@/lib/contentful/model-definitions";
+import {
+  fallbackStorefrontSettings,
+  type StorefrontSettings
+} from "@/lib/site";
 
-type Accent = Product["accent"];
-
-type ContentfulLink = {
-  sys?: {
-    id?: string;
-    linkType?: string;
-    type?: string;
-  };
+export {
+  getContentModelDefinitionById,
+  getContentSourceInfo,
+  isContentfulConfigured,
+  storefrontContentModelDefinitions
 };
 
-type ContentfulAsset = {
-  sys?: {
-    id?: string;
-  };
-  fields?: {
-    title?: string;
-    file?: {
-      url?: string;
-      contentType?: string;
-    };
-  };
-};
-
-type ContentfulItem<TFields> = {
-  sys?: {
-    id?: string;
-    createdAt?: string;
-    updatedAt?: string;
-  };
-  fields?: TFields;
-};
-
-type ContentfulResponse<TFields> = {
-  items?: Array<ContentfulItem<TFields>>;
-  includes?: {
-    Asset?: ContentfulAsset[];
-  };
-};
-
-type ContentfulProductFields = {
-  slug?: string;
-  title?: string;
-  category?: ProductCategory;
-  brand?: string;
-  price?: number;
-  comparePrice?: number;
-  currency?: Product["currency"];
-  delivery?: string;
-  shortDescription?: string;
-  description?: string;
-  features?: string[];
-  notes?: string[];
-  badge?: string;
-  coverLabel?: string;
-  accent?: Accent;
-  isFeatured?: boolean;
-  status?: ProductStatus;
-  image?: ContentfulLink;
-  videoFile?: ContentfulLink;
-  videoUrl?: string;
-};
-
-type ContentfulNewsFields = {
-  slug?: string;
-  title?: string;
-  excerpt?: string;
-  body?: string;
-  image?: ContentfulLink;
-  videoFile?: ContentfulLink;
-  videoUrl?: string;
-  publishedAt?: string;
-  isFeatured?: boolean;
-};
-
-type ContentfulSiteSettingsFields = {
-  heroEyebrow?: string;
-  heroStatusLabel?: string;
-  heroTitleLead?: string;
-  heroTitleHighlight?: string;
-  heroTitleTail?: string;
-  heroDescription?: string;
-  heroPrimaryCtaLabel?: string;
-  heroPrimaryCtaHref?: string;
-  heroSecondaryCtaLabel?: string;
-  heroSecondaryCtaHref?: string;
-  heroProofTitle?: string;
-  heroProofText?: string;
-  newsEyebrow?: string;
-  newsTitle?: string;
-  newsDescription?: string;
-  newsCtaLabel?: string;
-  announcementLabel?: string;
-  announcementTitle?: string;
-  announcementDescription?: string;
-  announcementCtaLabel?: string;
-  announcementCtaHref?: string;
-};
-
-const CONTENTFUL_SPACE_ID = process.env.CONTENTFUL_SPACE_ID;
-const CONTENTFUL_DELIVERY_TOKEN = process.env.CONTENTFUL_DELIVERY_TOKEN;
-const CONTENTFUL_ENVIRONMENT = process.env.CONTENTFUL_ENVIRONMENT || "master";
-const CONTENTFUL_BASE_URL = `https://cdn.contentful.com/spaces/${CONTENTFUL_SPACE_ID}/environments/${CONTENTFUL_ENVIRONMENT}`;
-
-const accentFallbacks: Accent[] = ["emerald", "cyan", "violet", "amber"];
-
-export function isContentfulConfigured() {
-  return Boolean(CONTENTFUL_SPACE_ID && CONTENTFUL_DELIVERY_TOKEN);
-}
-
-export function getContentSourceInfo() {
-  return {
-    cmsConfigured: isContentfulConfigured(),
-    cmsMode: isContentfulConfigured() ? "contentful" : "fallback"
-  } as const;
-}
-
-function normalizeAssetUrl(url?: string) {
-  if (!url) {
-    return undefined;
-  }
-
-  if (url.startsWith("//")) {
-    return `https:${url}`;
-  }
-
-  return url;
-}
-
-function toAssetMap(includes?: ContentfulResponse<unknown>["includes"]) {
-  const map = new Map<string, ContentfulAsset>();
-
-  for (const asset of includes?.Asset || []) {
-    if (asset.sys?.id) {
-      map.set(asset.sys.id, asset);
-    }
-  }
-
-  return map;
-}
-
-function resolveLinkedAssetUrl(link: ContentfulLink | undefined, assets: Map<string, ContentfulAsset>) {
-  const assetId = link?.sys?.id;
-
-  if (!assetId) {
-    return undefined;
-  }
-
-  return normalizeAssetUrl(assets.get(assetId)?.fields?.file?.url);
-}
-
-function buildProductBadge(comparePrice: number, price: number) {
-  return `${getDiscountPercent(comparePrice, price)}٪ تخفیف`;
-}
+type CategoryMeta = (typeof categories)[number];
 
 function isPublicProduct(product: Product) {
   return !product.status || product.status === "active";
 }
 
-function sortNewsByDate(items: NewsArticle[]) {
+function isPublicNews(article: NewsArticle) {
+  return !article.status || article.status === "active";
+}
+
+function sortProducts(items: Product[]) {
   return [...items].sort(
-    (left, right) => new Date(right.publishedAt).getTime() - new Date(left.publishedAt).getTime()
+    (left, right) =>
+      (right.priority || 0) - (left.priority || 0) ||
+      Number(Boolean(right.isFeatured)) - Number(Boolean(left.isFeatured))
   );
 }
 
-async function fetchContentfulEntries<TFields>(
-  contentType: string,
-  searchParams?: Record<string, string | number | boolean | undefined>
-) {
-  const params = new URLSearchParams({
-    content_type: contentType,
-    include: "2"
-  });
-
-  for (const [key, value] of Object.entries(searchParams || {})) {
-    if (value !== undefined && value !== null && value !== "") {
-      params.set(key, String(value));
-    }
-  }
-
-  const response = await fetch(`${CONTENTFUL_BASE_URL}/entries?${params.toString()}`, {
-    headers: {
-      Authorization: `Bearer ${CONTENTFUL_DELIVERY_TOKEN}`
-    },
-    next: {
-      revalidate: 60
-    }
-  });
-
-  if (!response.ok) {
-    throw new Error(`Contentful request failed with status ${response.status}`);
-  }
-
-  return (await response.json()) as ContentfulResponse<TFields>;
+function sortNews(items: NewsArticle[]) {
+  return [...items]
+    .filter(isPublicNews)
+    .sort(
+      (left, right) =>
+        Number(Boolean(right.isFeatured)) - Number(Boolean(left.isFeatured)) ||
+        (right.priority || 0) - (left.priority || 0) ||
+        new Date(right.publishedAt).getTime() - new Date(left.publishedAt).getTime()
+    );
 }
 
-function mapContentfulProduct(
-  item: ContentfulItem<ContentfulProductFields>,
-  assets: Map<string, ContentfulAsset>,
-  index: number
-): Product | null {
-  const fields = item.fields;
+function warnCmsFallback(scope: string, error: unknown) {
+  console.warn(`Falling back to local ${scope} because Contentful failed:`, error);
+}
 
-  if (
-    !fields?.slug ||
-    !fields.title ||
-    !fields.category ||
-    typeof fields.price !== "number" ||
-    typeof fields.comparePrice !== "number"
-  ) {
-    return null;
+function mergeCategoryOverrides(categoryItems: CategoryMeta[], overrides: Awaited<ReturnType<typeof loadContentfulCategoryContent>>) {
+  const overrideMap = new Map(overrides.map((item) => [item.key, item]));
+
+  return categoryItems.map((item) => {
+    if (item.key === "all") {
+      return item;
+    }
+
+    const override = overrideMap.get(item.key);
+
+    return {
+      ...item,
+      label: override?.label || item.label,
+      description: override?.description || item.description
+    };
+  });
+}
+
+export const getStorefrontSettings = cache(async () => {
+  if (!isContentfulConfigured()) {
+    return fallbackStorefrontSettings;
   }
+
+  const [siteSettingsResult, navigationResult] = await Promise.allSettled([
+    loadContentfulSiteSettings(),
+    loadContentfulNavigationItems()
+  ]);
+
+  if (siteSettingsResult.status === "rejected") {
+    warnCmsFallback("site settings", siteSettingsResult.reason);
+  }
+
+  if (navigationResult.status === "rejected") {
+    warnCmsFallback("navigation", navigationResult.reason);
+  }
+
+  const baseSettings =
+    siteSettingsResult.status === "fulfilled"
+      ? siteSettingsResult.value
+      : fallbackStorefrontSettings;
+  const navigation =
+    navigationResult.status === "fulfilled" && navigationResult.value.length > 0
+      ? navigationResult.value
+      : baseSettings.navigation;
 
   return {
-    id: item.sys?.id || `cms-product-${index}`,
-    slug: fields.slug,
-    title: fields.title,
-    category: fields.category,
-    brand: fields.brand || "FumGPT",
-    price: fields.price,
-    comparePrice: fields.comparePrice,
-    currency: fields.currency || "IRR",
-    delivery: fields.delivery || "تحویل دیجیتال",
-    shortDescription: fields.shortDescription || "",
-    description: fields.description || fields.shortDescription || "",
-    features: fields.features || [],
-    notes: fields.notes || [],
-    badge: fields.badge || buildProductBadge(fields.comparePrice, fields.price),
-    coverLabel: fields.coverLabel || fields.brand || fields.title,
-    accent: fields.accent || accentFallbacks[index % accentFallbacks.length],
-    isFeatured: Boolean(fields.isFeatured),
-    status: fields.status || "active",
-    imageUrl: resolveLinkedAssetUrl(fields.image, assets),
-    videoUrl: resolveLinkedAssetUrl(fields.videoFile, assets) || fields.videoUrl
-  };
-}
-
-function mapContentfulNews(
-  item: ContentfulItem<ContentfulNewsFields>,
-  assets: Map<string, ContentfulAsset>,
-  index: number
-): NewsArticle | null {
-  const fields = item.fields;
-
-  if (!fields?.slug || !fields.title || !fields.excerpt) {
-    return null;
-  }
-
-  return {
-    id: item.sys?.id || `cms-news-${index}`,
-    slug: fields.slug,
-    title: fields.title,
-    excerpt: fields.excerpt,
-    body: fields.body || fields.excerpt,
-    imageUrl: resolveLinkedAssetUrl(fields.image, assets),
-    videoUrl: resolveLinkedAssetUrl(fields.videoFile, assets) || fields.videoUrl,
-    publishedAt: fields.publishedAt || item.sys?.createdAt || new Date().toISOString(),
-    isFeatured: Boolean(fields.isFeatured)
-  };
-}
-
-function mapContentfulSiteSettings(item?: ContentfulItem<ContentfulSiteSettingsFields>): HomePageContent {
-  const fields = item?.fields;
-
-  return {
-    hero: {
-      eyebrow: fields?.heroEyebrow || fallbackHomePageContent.hero.eyebrow,
-      statusLabel: fields?.heroStatusLabel || fallbackHomePageContent.hero.statusLabel,
-      titleLead: fields?.heroTitleLead || fallbackHomePageContent.hero.titleLead,
-      titleHighlight: fields?.heroTitleHighlight || fallbackHomePageContent.hero.titleHighlight,
-      titleTail: fields?.heroTitleTail || fallbackHomePageContent.hero.titleTail,
-      description: fields?.heroDescription || fallbackHomePageContent.hero.description,
-      primaryCtaLabel:
-        fields?.heroPrimaryCtaLabel || fallbackHomePageContent.hero.primaryCtaLabel,
-      primaryCtaHref: fields?.heroPrimaryCtaHref || fallbackHomePageContent.hero.primaryCtaHref,
-      secondaryCtaLabel:
-        fields?.heroSecondaryCtaLabel || fallbackHomePageContent.hero.secondaryCtaLabel,
-      secondaryCtaHref:
-        fields?.heroSecondaryCtaHref || fallbackHomePageContent.hero.secondaryCtaHref,
-      proofTitle: fields?.heroProofTitle || fallbackHomePageContent.hero.proofTitle,
-      proofText: fields?.heroProofText || fallbackHomePageContent.hero.proofText
-    },
-    newsSection: {
-      eyebrow: fields?.newsEyebrow || fallbackHomePageContent.newsSection.eyebrow,
-      title: fields?.newsTitle || fallbackHomePageContent.newsSection.title,
-      description: fields?.newsDescription || fallbackHomePageContent.newsSection.description,
-      ctaLabel: fields?.newsCtaLabel || fallbackHomePageContent.newsSection.ctaLabel
-    },
-    announcement: {
-      label: fields?.announcementLabel || fallbackHomePageContent.announcement.label,
-      title: fields?.announcementTitle || fallbackHomePageContent.announcement.title,
-      description:
-        fields?.announcementDescription || fallbackHomePageContent.announcement.description,
-      ctaLabel: fields?.announcementCtaLabel || fallbackHomePageContent.announcement.ctaLabel,
-      ctaHref: fields?.announcementCtaHref || fallbackHomePageContent.announcement.ctaHref
-    }
-  };
-}
-
-async function loadContentfulProducts() {
-  const response = await fetchContentfulEntries<ContentfulProductFields>("product", {
-    order: "-sys.createdAt"
-  });
-  const assets = toAssetMap(response.includes);
-
-  return (
-    response.items
-      ?.map((item, index) => mapContentfulProduct(item, assets, index))
-      .filter((item): item is Product => Boolean(item))
-      .filter(isPublicProduct) || []
-  );
-}
-
-async function loadContentfulNews() {
-  const response = await fetchContentfulEntries<ContentfulNewsFields>("newsArticle", {
-    order: "-fields.publishedAt"
-  });
-  const assets = toAssetMap(response.includes);
-
-  return (
-    response.items
-      ?.map((item, index) => mapContentfulNews(item, assets, index))
-      .filter((item): item is NewsArticle => Boolean(item)) || []
-  );
-}
-
-async function loadContentfulSiteSettings() {
-  const response = await fetchContentfulEntries<ContentfulSiteSettingsFields>("siteSettings", {
-    limit: 1
-  });
-
-  return mapContentfulSiteSettings(response.items?.[0]);
-}
+    ...baseSettings,
+    navigation
+  } satisfies StorefrontSettings;
+});
 
 export const getStoreProducts = cache(async () => {
   if (!isContentfulConfigured()) {
-    return fallbackProducts.filter(isPublicProduct);
+    return sortProducts(fallbackProducts.filter(isPublicProduct));
   }
 
   try {
-    const contentfulProducts = await loadContentfulProducts();
-    return contentfulProducts;
+    return sortProducts((await loadContentfulProducts()).filter(isPublicProduct));
   } catch (error) {
-    console.warn("Falling back to local products because Contentful failed:", error);
-    return fallbackProducts.filter(isPublicProduct);
+    warnCmsFallback("products", error);
+    return sortProducts(fallbackProducts.filter(isPublicProduct));
   }
 });
 
 export const getStoreNews = cache(async () => {
   if (!isContentfulConfigured()) {
-    return sortNewsByDate(fallbackNews);
+    return sortNews(fallbackNews);
   }
 
   try {
-    const contentfulNews = await loadContentfulNews();
-    return sortNewsByDate(contentfulNews);
+    return sortNews(await loadContentfulNews());
   } catch (error) {
-    console.warn("Falling back to local news because Contentful failed:", error);
-    return sortNewsByDate(fallbackNews);
+    warnCmsFallback("news", error);
+    return sortNews(fallbackNews);
   }
 });
 
@@ -377,10 +152,24 @@ export const getHomePageContent = cache(async () => {
   }
 
   try {
-    return await loadContentfulSiteSettings();
+    return await loadContentfulHomepageSettings();
   } catch (error) {
-    console.warn("Falling back to local homepage settings because Contentful failed:", error);
+    warnCmsFallback("homepage settings", error);
     return fallbackHomePageContent;
+  }
+});
+
+export const getStoreCategories = cache(async () => {
+  if (!isContentfulConfigured()) {
+    return categories;
+  }
+
+  try {
+    const overrides = await loadContentfulCategoryContent();
+    return mergeCategoryOverrides(categories, overrides);
+  } catch (error) {
+    warnCmsFallback("category content", error);
+    return categories;
   }
 });
 
@@ -411,11 +200,13 @@ export async function getStoreRelatedProducts(category: ProductCategory, current
 }
 
 export async function getStoreCategoryCounts() {
-  const products = await getStoreProducts();
+  const [products, categoryItems] = await Promise.all([getStoreProducts(), getStoreCategories()]);
 
-  return categories
+  return categoryItems
     .filter(
-      (item): item is {
+      (
+        item
+      ): item is {
         key: ProductCategory;
         label: string;
         description: string;
@@ -425,6 +216,11 @@ export async function getStoreCategoryCounts() {
       ...item,
       count: products.filter((product) => product.category === item.key).length
     }));
+}
+
+export async function getStoreCategoryMeta(key: string) {
+  const categoryItems = await getStoreCategories();
+  return categoryItems.find((item) => item.key === key);
 }
 
 export async function getHeroStats() {
