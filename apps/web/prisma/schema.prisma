@@ -1,0 +1,267 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String            @id @default(cuid())
+  email             String?           @unique
+  phone             String?           @unique
+  role              String            @default("customer")
+  status            String            @default("active")
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  profile           UserProfile?
+  authIdentities    AuthIdentity[]
+  otpCodes          OtpCode[]
+  sessions          Session[]
+  carts             Cart[]
+  orders            Order[]
+  customerAddresses CustomerAddress[]
+  auditLogs         AuditLog[]
+  analyticsEvents   AnalyticsEvent[]
+  supportRequests   SupportRequest[]
+
+  @@index([role])
+  @@map("users")
+}
+
+model UserProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  displayName String?
+  firstName   String?
+  lastName    String?
+  nationalId  String?
+  birthDate   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model AuthIdentity {
+  id             String   @id @default(cuid())
+  userId         String
+  provider       String
+  providerUserId String
+  identifier     String?
+  passwordHash   String?
+  isPrimary      Boolean  @default(false)
+  lastUsedAt     DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+  @@index([userId])
+  @@map("auth_identities")
+}
+
+model OtpCode {
+  id         String   @id @default(cuid())
+  userId     String?
+  identifier String
+  purpose    String
+  channel    String
+  codeHash   String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  attempts   Int      @default(0)
+  createdAt  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([identifier, purpose])
+  @@map("otp_codes")
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  userId     String
+  tokenHash  String   @unique
+  authMode   String   @default("password")
+  ipAddress  String?
+  userAgent  String?
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime?
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model Cart {
+  id           String     @id @default(cuid())
+  userId       String?
+  status       String     @default("open")
+  currency     String     @default("IRR")
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  checkedOutAt DateTime?
+  user         User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  items        CartItem[]
+
+  @@index([userId, status])
+  @@map("carts")
+}
+
+model CartItem {
+  id            String   @id @default(cuid())
+  cartId        String
+  productSlug   String
+  titleSnapshot String
+  unitPrice     Int
+  quantity      Int      @default(1)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  cart          Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  @@index([cartId])
+  @@index([productSlug])
+  @@map("cart_items")
+}
+
+model Order {
+  id               String           @id @default(cuid())
+  userId           String?
+  addressId        String?
+  supportRequestId String?
+  sourceCartId     String?
+  orderNumber      String           @unique
+  status           String           @default("draft")
+  currency         String           @default("IRR")
+  customerName     String
+  customerPhone    String
+  customerEmail    String?
+  paymentProvider  String           @default("manual")
+  paymentReference String?
+  subtotalAmount   Int              @default(0)
+  notes            String?
+  shippingRecipientName String?
+  shippingPhone        String?
+  shippingProvince     String?
+  shippingCity         String?
+  shippingAddressLine1 String?
+  shippingAddressLine2 String?
+  shippingPostalCode   String?
+  placedAt         DateTime?
+  paidAt           DateTime?
+  failedAt         DateTime?
+  fulfilledAt      DateTime?
+  cancelledAt      DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  user             User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  address          CustomerAddress? @relation(fields: [addressId], references: [id], onDelete: SetNull)
+  supportRequest   SupportRequest?  @relation("SupportRequestOrders", fields: [supportRequestId], references: [id], onDelete: SetNull)
+  items            OrderItem[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("orders")
+}
+
+model OrderItem {
+  id            String   @id @default(cuid())
+  orderId       String
+  productSlug   String
+  titleSnapshot String
+  unitPrice     Int
+  quantity      Int      @default(1)
+  createdAt     DateTime @default(now())
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model CustomerAddress {
+  id            String   @id @default(cuid())
+  userId        String
+  label         String?
+  recipientName String
+  phone         String
+  province      String
+  city          String
+  addressLine1  String
+  addressLine2  String?
+  postalCode    String?
+  isDefault     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders        Order[]
+
+  @@index([userId])
+  @@map("customer_addresses")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String
+  entityType String
+  entityId   String?
+  requestId  String?
+  details    String?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([requestId])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
+
+model AnalyticsEvent {
+  id           String   @id @default(cuid())
+  name         String
+  source       String   @default("storefront")
+  route        String
+  path         String
+  requestId    String?
+  userId       String?
+  sessionKind  String   @default("guest")
+  referrerHost String?
+  entityType   String?
+  entityId     String?
+  metadata     String?
+  createdAt    DateTime @default(now())
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([name, createdAt])
+  @@index([path, createdAt])
+  @@index([requestId])
+  @@index([userId, createdAt])
+  @@map("analytics_events")
+}
+
+model SupportRequest {
+  id         String   @id @default(cuid())
+  userId     String?
+  status     String   @default("open")
+  channel    String   @default("site")
+  name       String?
+  email      String?
+  phone      String?
+  subject    String
+  message    String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  resolvedAt DateTime?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  orders     Order[]  @relation("SupportRequestOrders")
+
+  @@index([userId, status])
+  @@map("support_requests")
+}

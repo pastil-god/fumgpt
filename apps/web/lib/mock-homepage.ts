@@ -7,6 +7,23 @@ export type HomePageSection = {
   ctaHref: string;
 };
 
+export type HomePageTrustSection = {
+  isVisible: boolean;
+  eyebrow: string;
+  title: string;
+  points: string[];
+};
+
+export type HomePageRoadmapSection = {
+  isVisible: boolean;
+  eyebrow: string;
+  title: string;
+  phases: Array<{
+    title: string;
+    description: string;
+  }>;
+};
+
 export type HomePageContent = {
   hero: {
     eyebrow: string;
@@ -35,6 +52,8 @@ export type HomePageContent = {
     adminCalloutTitle: string;
     adminCalloutDescription: string;
   };
+  trustSection: HomePageTrustSection;
+  roadmapSection: HomePageRoadmapSection;
   announcement: {
     isVisible: boolean;
     label: string;
@@ -98,6 +117,37 @@ export const homePageContent: HomePageContent = {
     adminCalloutTitle: "خبرها، بنرها و محتوای اصلی فروشگاه را بدون کدنویسی به‌روزرسانی کن",
     adminCalloutDescription:
       "مدیر محتوا می‌تواند از داشبورد Contentful خبر، تصویر، ویدئو و متن بخش‌های اصلی را ویرایش کند و همان روز در سایت منتشر ببیند."
+  },
+  trustSection: {
+    isVisible: true,
+    eyebrow: "چرا FumGPT",
+    title: "یک ویترین روشن، مرتب و قابل اعتماد برای خرید دیجیتال",
+    points: [
+      "هدر تمیز و سبک با ناوبری خوانا و اکشن‌های واضح",
+      "بنر اصلی روشن با CTAهای مستقیم و اعتمادساز",
+      "تب‌های دسته‌بندی و کارت‌های گرد برای مرور راحت‌تر",
+      "کارت محصول با قیمت‌گذاری شفاف و مسیر خرید مشخص",
+      "سازگاری کامل با CMS و توسعه فازهای بعدی روی همین ظاهر"
+    ]
+  },
+  roadmapSection: {
+    isVisible: true,
+    eyebrow: "مسیر توسعه",
+    title: "فازهای بعدی روی همین هسته سبک و قابل‌مدیریت اضافه می‌شوند",
+    phases: [
+      {
+        title: "فروشگاه",
+        description: "کاتالوگ زنده، خبرهای قابل مدیریت و تجربه مرور حرفه‌ای برای عرضه عمومی."
+      },
+      {
+        title: "آکادمی",
+        description: "دوره‌ها، بوت‌کمپ‌ها و محتوای آموزشی می‌توانند روی همین زبان طراحی اضافه شوند."
+      },
+      {
+        title: "بازارچه ایجنت",
+        description: "در فاز بعد، سرویس‌ها و فروشندگان جدید بدون تغییر در معماری اصلی به همین ویترین متصل می‌شوند."
+      }
+    ]
   },
   announcement: {
     isVisible: true,

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { getStorefrontSettings } from "@/lib/content";
+import { operationalFooterLinks } from "@/lib/operations-content";
 import { getNavigationLinks, isExternalHref } from "@/lib/site";
 
 export async function Footer() {
@@ -56,6 +57,11 @@ export async function Footer() {
               )
             )}
             <Link href="/account">حساب کاربری</Link>
+            {operationalFooterLinks.map((item) => (
+              <Link key={item.href} href={item.href}>
+                {item.label}
+              </Link>
+            ))}
           </div>
         </div>
 
@@ -80,7 +86,7 @@ export async function Footer() {
 
       <div className="container footer-bottom">
         <span>{settings.footer.copyright}</span>
-        <span>نسخه فعلی: فروشگاه عمومی، خبرها و مدیریت محتوای بیرونی</span>
+        <span>نسخه فعلی: سفارش واقعی، پیگیری روشن و مدیریت محتوای بیرونی</span>
       </div>
     </footer>
   );

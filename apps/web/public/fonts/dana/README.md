@@ -1,9 +1,9 @@
-Drop the licensed DanaFaNum font files in this folder to enable the full typography setup automatically.
+This folder is a placeholder only.
 
-Expected filenames:
+Current status:
 
-- `DanaFaNum-Regular.woff2`
-- `DanaFaNum-Medium.woff2`
-- `DanaFaNum-Bold.woff2`
+- No licensed Dana font files are committed in this repository.
+- The storefront is not currently wired to Dana through `@font-face`.
+- Production uses the fallback Persian-friendly system stack defined in `apps/web/app/globals.css`.
 
-The storefront is already wired to use these files through `@font-face` in `apps/web/app/globals.css`.
+If you later license Dana, add the `.woff2` files here and then wire them explicitly in CSS with `font-display: swap`.

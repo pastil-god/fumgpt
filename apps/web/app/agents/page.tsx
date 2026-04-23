@@ -1,4 +1,14 @@
 import Link from "next/link";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "زیرساخت بازارچه ایجنت",
+  description: "معرفی شفاف مسیر توسعه آینده بازارچه ایجنت، بدون ادعای فعال بودن این بخش در نسخه فعلی.",
+  robots: {
+    index: false,
+    follow: false
+  }
+};
 
 export default function AgentsPage() {
   return (

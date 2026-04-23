@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { AnalyticsPageView } from "@/components/analytics-page-view";
 import {
   getStoreCategoryMeta,
   getStoreProductBySlug,
@@ -10,19 +11,18 @@ import {
   isDirectVideoFile
 } from "@/lib/content";
 import { formatPriceIRR, getDiscountPercent } from "@/lib/mock-data";
-import { isExternalHref, siteConfig } from "@/lib/site";
+import { buildPublicMetadata } from "@/lib/seo";
+import { isExternalHref } from "@/lib/site";
 import { ProductCard } from "@/components/product-card";
 
-async function resolveParams(params: Promise<{ slug: string }> | { slug: string }) {
-  return typeof (params as Promise<{ slug: string }>).then === "function"
-    ? await (params as Promise<{ slug: string }>)
-    : (params as { slug: string });
+async function resolveParams(params: Promise<{ slug: string }>) {
+  return await params;
 }
 
 export async function generateMetadata({
   params
 }: {
-  params: Promise<{ slug: string }> | { slug: string };
+  params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const resolvedParams = await resolveParams(params);
   const product = await getStoreProductBySlug(resolvedParams.slug);
@@ -33,36 +33,34 @@ export async function generateMetadata({
     };
   }
 
-  return {
+  return buildPublicMetadata({
     title: product.title,
     description: product.shortDescription,
-    openGraph: {
-      title: product.title,
-      description: product.shortDescription,
-      type: "website",
-      url: `${siteConfig.siteUrl}/products/${product.slug}`,
-      images: product.imageUrl ? [{ url: product.imageUrl }] : undefined
-    }
-  };
+    path: `/products/${product.slug}`,
+    imagePath: product.imageUrl,
+    type: "website"
+  });
 }
 
 function SupportAction({
   href,
-  label
+  label,
+  className = "btn btn-primary"
 }: {
   href: string;
   label: string;
+  className?: string;
 }) {
   if (isExternalHref(href)) {
     return (
-      <a className="btn btn-primary" href={href} target="_blank" rel="noreferrer">
+      <a className={className} href={href} target="_blank" rel="noreferrer">
         {label}
       </a>
     );
   }
 
   return (
-    <Link className="btn btn-primary" href={href}>
+    <Link className={className} href={href}>
       {label}
     </Link>
   );
@@ -71,7 +69,7 @@ function SupportAction({
 export default async function ProductDetailPage({
   params
 }: {
-  params: Promise<{ slug: string }> | { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
   const resolvedParams = await resolveParams(params);
   const [product, storefrontSettings] = await Promise.all([
@@ -87,6 +85,7 @@ export default async function ProductDetailPage({
     getStoreRelatedProducts(product.category, product.id),
     getStoreCategoryMeta(product.category)
   ]);
+
   const galleryImages = [
     ...new Set(
       [product.imageUrl, ...(product.galleryImageUrls || [])].filter(
@@ -98,6 +97,18 @@ export default async function ProductDetailPage({
   return (
     <section className="section section-muted">
       <div className="container section-stack">
+        <AnalyticsPageView
+          name="product_page_view"
+          route="/products/[slug]"
+          path={`/products/${product.slug}`}
+          entityType="product"
+          entityId={product.slug}
+          metadata={{
+            category: product.category,
+            price: product.price,
+            relatedProductCount: relatedProducts.length
+          }}
+        />
         <div className="detail-breadcrumb">
           <Link href="/">خانه</Link>
           <span>/</span>
@@ -152,14 +163,27 @@ export default async function ProductDetailPage({
               </div>
 
               <div className="btn-row">
+                <form action="/api/cart/add" method="post">
+                  <input type="hidden" name="productSlug" value={product.slug} />
+                  <input type="hidden" name="quantity" value="1" />
+                  <input type="hidden" name="redirectTo" value="/cart" />
+                  <button className="btn btn-primary" type="submit">
+                    افزودن به سبد خرید
+                  </button>
+                </form>
                 <SupportAction
                   href={storefrontSettings.support.helpCtaHref}
                   label={storefrontSettings.support.helpCtaLabel}
+                  className="btn btn-secondary"
                 />
                 <Link href="/products" className="btn btn-secondary">
                   بازگشت به فروشگاه
                 </Link>
               </div>
+              <p className="muted small-note">
+                تعداد را بعداً در سبد خرید می‌توانی تغییر بدهی. پرداخت آنلاین هنوز فعال نیست و تا آماده شدن checkout
+                فقط مدیریت سبد و جمع مبلغ انجام می‌شود.
+              </p>
 
               {galleryImages.length > 1 ? (
                 <div className="surface nested-card">

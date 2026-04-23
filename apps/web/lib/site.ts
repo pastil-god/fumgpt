@@ -76,8 +76,9 @@ export const fallbackStorefrontSettings: StorefrontSettings = {
   navigation: [
     { label: "خانه", href: "/", location: "both", priority: 100 },
     { label: "فروشگاه", href: "/products", location: "both", priority: 90 },
+    { label: "آکادمی", href: "/academy", location: "both", priority: 85 },
+    { label: "آموزش", href: "/academy#learning-path", location: "primary", priority: 84 },
     { label: "اخبار", href: "/news", location: "both", priority: 80 },
-    { label: "آکادمی", href: "/academy", location: "footer", priority: 70 },
     { label: "بازارچه ایجنت", href: "/agents", location: "footer", priority: 60 }
   ]
 };

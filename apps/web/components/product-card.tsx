@@ -72,7 +72,7 @@ export function ProductCard({ product, variant = "default" }: Props) {
 
         <div className="card-actions">
           <Link className="btn btn-primary btn-block" href={`/products/${product.slug}`} prefetch={false}>
-            مشاهده جزئیات و خرید
+            مشاهده جزئیات
           </Link>
           <Link className="text-link product-secondary-link" href={`/products?category=${product.category}`} prefetch={false}>
             محصولات مشابه

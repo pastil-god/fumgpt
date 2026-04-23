@@ -2,26 +2,26 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { isAcademyEditorialArticle } from "@/lib/analytics";
+import { AnalyticsPageView } from "@/components/analytics-page-view";
 import {
   formatPersianDate,
   getRelatedNewsArticles,
   getStoreNewsBySlug,
   isDirectVideoFile
 } from "@/lib/content";
-import { siteConfig } from "@/lib/site";
+import { buildPublicMetadata } from "@/lib/seo";
 
 async function resolveParams(
-  params: Promise<{ slug: string }> | { slug: string }
+  params: Promise<{ slug: string }>
 ) {
-  return typeof (params as Promise<{ slug: string }>).then === "function"
-    ? await (params as Promise<{ slug: string }>)
-    : (params as { slug: string });
+  return await params;
 }
 
 export async function generateMetadata({
   params
 }: {
-  params: Promise<{ slug: string }> | { slug: string };
+  params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const resolvedParams = await resolveParams(params);
   const article = await getStoreNewsBySlug(resolvedParams.slug);
@@ -32,23 +32,19 @@ export async function generateMetadata({
     };
   }
 
-  return {
+  return buildPublicMetadata({
     title: article.title,
     description: article.excerpt,
-    openGraph: {
-      title: article.title,
-      description: article.excerpt,
-      type: "article",
-      url: `${siteConfig.siteUrl}/news/${article.slug}`,
-      images: article.imageUrl ? [{ url: article.imageUrl }] : undefined
-    }
-  };
+    path: `/news/${article.slug}`,
+    imagePath: article.imageUrl,
+    type: "article"
+  });
 }
 
 export default async function NewsDetailPage({
   params
 }: {
-  params: Promise<{ slug: string }> | { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
   const resolvedParams = await resolveParams(params);
   const article = await getStoreNewsBySlug(resolvedParams.slug);
@@ -58,10 +54,28 @@ export default async function NewsDetailPage({
   }
 
   const relatedArticles = await getRelatedNewsArticles(article.id, 3);
+  const isAcademyArticle = isAcademyEditorialArticle({
+    slug: article.slug,
+    title: article.title,
+    excerpt: article.excerpt
+  });
 
   return (
     <section className="section section-muted">
       <div className="container section-stack">
+        {isAcademyArticle ? (
+          <AnalyticsPageView
+            name="academy_article_view"
+            route="/news/[slug]"
+            path={`/news/${article.slug}`}
+            entityType="article"
+            entityId={article.slug}
+            metadata={{
+              relatedArticleCount: relatedArticles.length,
+              source: "news"
+            }}
+          />
+        ) : null}
         <div className="surface article-shell">
           <div className="article-meta">
             <span className="chip">{formatPersianDate(article.publishedAt)}</span>

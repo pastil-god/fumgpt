@@ -2,10 +2,13 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { formatPersianDate, getStoreNews } from "@/lib/content";
+import { buildPublicMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "اخبار و مقاله‌ها"
-};
+export const metadata: Metadata = buildPublicMetadata({
+  title: "اخبار و مقاله‌ها",
+  description: "خبرها، مقاله‌ها و به‌روزرسانی‌های FumGPT در یک مسیر عمومی و قابل اشتراک‌گذاری.",
+  path: "/news"
+});
 
 export default async function NewsPage() {
   const articles = await getStoreNews();
@@ -18,7 +21,8 @@ export default async function NewsPage() {
             <div className="eyebrow">اخبار و مقالات</div>
             <h1 className="page-title">خبرها، مقاله‌ها و به‌روزرسانی‌های FumGPT</h1>
             <p className="muted section-text">
-              این صفحه از طریق CMS به‌روزرسانی می‌شود تا خبرها، مقاله‌ها و اطلاعیه‌های فروشگاه در یک مسیر واحد و قابل مدیریت منتشر شوند.
+              این صفحه از طریق CMS به‌روزرسانی می‌شود تا خبرها، مقاله‌ها و اطلاعیه‌های فروشگاه در یک مسیر
+              واحد و قابل مدیریت منتشر شوند.
             </p>
           </div>
           <div className="chip-row">

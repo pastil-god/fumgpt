@@ -12,14 +12,25 @@ export async function generateMetadata(): Promise<Metadata> {
   const logoUrl = settings.logoUrl || "/logo.svg";
 
   return {
+    applicationName: settings.brandName,
     title: {
       default: settings.siteTitle,
       template: `%s | ${settings.brandName}`
     },
     description: settings.siteDescription,
     metadataBase: new URL(siteConfig.siteUrl),
+    referrer: "strict-origin-when-cross-origin",
+    formatDetection: {
+      email: false,
+      address: false,
+      telephone: false
+    },
     alternates: {
       canonical: "/"
+    },
+    robots: {
+      index: true,
+      follow: true
     },
     openGraph: {
       title: settings.siteTitle,
@@ -63,10 +74,13 @@ export default function RootLayout({
   return (
     <html lang="fa" dir="rtl">
       <body>
+        <a href="#main-content" className="skip-link">
+          رد شدن و رفتن به محتوای اصلی
+        </a>
         <AntiGravitySwirl mode={decorativeBackgroundMode} />
         <div className="app-shell">
           <Header />
-          <main>{children}</main>
+          <main id="main-content">{children}</main>
           <Footer />
         </div>
       </body>

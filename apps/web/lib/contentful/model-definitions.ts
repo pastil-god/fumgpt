@@ -87,12 +87,39 @@ export const storefrontContentModelDefinitions: ContentModelDefinition[] = [
       { id: "newsAdminCalloutLabel", name: "News callout label", type: "shortText", description: "Admin-callout label for the news block." },
       { id: "newsAdminCalloutTitle", name: "News callout title", type: "shortText", description: "Admin-callout title for the news block." },
       { id: "newsAdminCalloutDescription", name: "News callout description", type: "longText", description: "Admin-callout description for the news block." },
+      { id: "showTrustSection", name: "Show trust section", type: "boolean", description: "Toggle the homepage trust / why choose us card." },
+      { id: "trustEyebrow", name: "Trust section eyebrow", type: "shortText", description: "Small label for the homepage trust section." },
+      { id: "trustTitle", name: "Trust section title", type: "shortText", description: "Title for the homepage trust section." },
+      { id: "trustPoints", name: "Trust points", type: "list", itemsType: "shortText", description: "Short trust bullets shown in the homepage trust card." },
+      { id: "showRoadmapSection", name: "Show roadmap section", type: "boolean", description: "Toggle the homepage roadmap / next phases card." },
+      { id: "roadmapEyebrow", name: "Roadmap eyebrow", type: "shortText", description: "Small label for the roadmap block." },
+      { id: "roadmapTitle", name: "Roadmap title", type: "shortText", description: "Title for the roadmap block." },
+      { id: "roadmapPhase1Title", name: "Roadmap phase 1 title", type: "shortText", description: "First roadmap phase title." },
+      { id: "roadmapPhase1Description", name: "Roadmap phase 1 description", type: "longText", description: "First roadmap phase supporting text." },
+      { id: "roadmapPhase2Title", name: "Roadmap phase 2 title", type: "shortText", description: "Second roadmap phase title." },
+      { id: "roadmapPhase2Description", name: "Roadmap phase 2 description", type: "longText", description: "Second roadmap phase supporting text." },
+      { id: "roadmapPhase3Title", name: "Roadmap phase 3 title", type: "shortText", description: "Third roadmap phase title." },
+      { id: "roadmapPhase3Description", name: "Roadmap phase 3 description", type: "longText", description: "Third roadmap phase supporting text." },
       { id: "showSupportBanner", name: "Show support banner", type: "boolean", description: "Toggle the bottom homepage support banner." },
       { id: "announcementLabel", name: "Announcement label", type: "shortText", description: "Small label for the homepage support banner." },
       { id: "announcementTitle", name: "Announcement title", type: "shortText", description: "Title for the homepage support banner." },
       { id: "announcementDescription", name: "Announcement description", type: "longText", description: "Description for the homepage support banner." },
       { id: "announcementCtaLabel", name: "Announcement CTA label", type: "shortText", description: "Button text for the homepage support banner." },
       { id: "announcementCtaHref", name: "Announcement CTA link", type: "shortText", description: "Button link for the homepage support banner." }
+    ]
+  },
+  {
+    id: "navigationItem",
+    name: "Navigation Item",
+    purpose: "Manage header and footer links without hardcoding menu text in the app.",
+    phase: "now",
+    fields: [
+      { id: "label", name: "Label", type: "shortText", required: true, description: "Public link text." },
+      { id: "href", name: "Link", type: "shortText", required: true, description: "Internal path or external URL." },
+      { id: "location", name: "Location", type: "shortText", description: "One of: primary, footer, both." },
+      { id: "openInNewTab", name: "Open in new tab", type: "boolean", description: "Use for external links that should open in a new tab." },
+      { id: "status", name: "Status", type: "shortText", description: "Use active or draft to control visibility." },
+      { id: "priority", name: "Priority", type: "number", description: "Higher numbers appear earlier." }
     ]
   },
   {
@@ -138,6 +165,27 @@ export const storefrontContentModelDefinitions: ContentModelDefinition[] = [
       { id: "isFeatured", name: "Featured", type: "boolean", description: "Show this product in homepage featured sections." },
       { id: "status", name: "Status", type: "shortText", description: "Use active, draft, or archived." },
       { id: "priority", name: "Priority", type: "number", description: "Optional ordering value." }
+    ]
+  },
+  {
+    id: "newsArticle",
+    name: "News Article",
+    purpose: "Manage storefront news, launch updates, and articles for the homepage and /news pages.",
+    phase: "now",
+    fields: [
+      { id: "title", name: "Title", type: "shortText", required: true, description: "Public article title." },
+      { id: "slug", name: "Slug", type: "shortText", required: true, description: "Unique article slug." },
+      { id: "summary", name: "Summary", type: "longText", required: true, description: "Short summary for cards and listings." },
+      { id: "body", name: "Body", type: "longText", required: true, description: "Main article body text." },
+      { id: "image", name: "Image", type: "media", description: "Optional article image." },
+      { id: "videoFile", name: "Video file", type: "media", description: "Optional uploaded video file." },
+      { id: "videoUrl", name: "Video URL", type: "shortText", description: "Optional external video URL." },
+      { id: "publishedAt", name: "Published at", type: "dateTime", description: "Public publish date." },
+      { id: "isFeatured", name: "Featured", type: "boolean", description: "Highlight this article in featured areas." },
+      { id: "ctaLabel", name: "CTA label", type: "shortText", description: "Optional CTA text." },
+      { id: "ctaHref", name: "CTA link", type: "shortText", description: "Optional CTA link." },
+      { id: "status", name: "Status", type: "shortText", description: "Use active or draft to control visibility." },
+      { id: "priority", name: "Priority", type: "number", description: "Higher numbers appear earlier." }
     ]
   },
   {

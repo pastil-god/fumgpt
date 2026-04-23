@@ -106,6 +106,19 @@ NEXT_PUBLIC_INSTAGRAM=https://instagram.com/example
 | `newsAdminCalloutLabel` | Short text | لیبل باکس مدیریت محتوا |
 | `newsAdminCalloutTitle` | Short text | تیتر باکس مدیریت محتوا |
 | `newsAdminCalloutDescription` | Long text | متن باکس مدیریت محتوا |
+| `showTrustSection` | Boolean | نمایش/عدم نمایش بخش اعتماد صفحه اصلی |
+| `trustEyebrow` | Short text | متن بالای بخش اعتماد |
+| `trustTitle` | Short text | تیتر بخش اعتماد |
+| `trustPoints` | List of short text | بولت‌های کوتاه بخش اعتماد |
+| `showRoadmapSection` | Boolean | نمایش/عدم نمایش بخش مسیر توسعه |
+| `roadmapEyebrow` | Short text | متن بالای بخش مسیر توسعه |
+| `roadmapTitle` | Short text | تیتر بخش مسیر توسعه |
+| `roadmapPhase1Title` | Short text | عنوان فاز اول |
+| `roadmapPhase1Description` | Long text | توضیح فاز اول |
+| `roadmapPhase2Title` | Short text | عنوان فاز دوم |
+| `roadmapPhase2Description` | Long text | توضیح فاز دوم |
+| `roadmapPhase3Title` | Short text | عنوان فاز سوم |
+| `roadmapPhase3Description` | Long text | توضیح فاز سوم |
 | `showSupportBanner` | Boolean | نمایش/عدم نمایش نوار پشتیبانی پایین صفحه |
 | `announcementLabel` | Short text | لیبل نوار پایین صفحه |
 | `announcementTitle` | Short text | تیتر نوار پایین صفحه |

@@ -73,7 +73,7 @@ export async function Header() {
             </div>
           </Link>
 
-          <nav className="nav-links header-nav" aria-label="main-navigation">
+          <nav className="nav-links header-nav" aria-label="منوی اصلی سایت">
             {navigation.map((item) =>
               isExternalHref(item.href) ? (
                 <a

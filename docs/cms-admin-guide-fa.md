@@ -28,6 +28,8 @@
 - تیتر و توضیح بخش دسته‌بندی‌ها
 - تیتر و توضیح بخش محصولات منتخب
 - تیتر و توضیح بخش خبرها
+- متن بخش اعتماد / چرا ما
+- متن و فازهای بخش مسیر توسعه
 - نمایش/عدم نمایش هر بخش
 - نوار پشتیبانی پایین صفحه
 
@@ -101,7 +103,7 @@
 
 - فقط خبرهایی که `status = active` دارند در سایت عمومی نمایش داده می‌شوند.
 
-## 5. چطور متن هیرو یا بنرهای صفحه اصلی را عوض کنم؟
+## 5. چطور متن هیرو یا بخش‌های بازاریابی صفحه اصلی را عوض کنم؟
 
 1. وارد `homepageSettings` شوید.
 2. برای هیرو این فیلدها را تغییر دهید:
@@ -113,13 +115,23 @@
    - `heroPrimaryCtaHref`
    - `heroSecondaryCtaLabel`
    - `heroSecondaryCtaHref`
-3. برای بنرهای صفحه اصلی این فیلدها را تغییر دهید:
+3. برای کارت اعتماد و مسیر توسعه این فیلدها را تغییر دهید:
+   - `trustTitle`
+   - `trustPoints`
+   - `roadmapTitle`
+   - `roadmapPhase1Title`
+   - `roadmapPhase1Description`
+   - `roadmapPhase2Title`
+   - `roadmapPhase2Description`
+   - `roadmapPhase3Title`
+   - `roadmapPhase3Description`
+4. برای بنرهای صفحه اصلی این فیلدها را تغییر دهید:
    - `heroMarketTitle`
    - `heroMarketDescription`
    - `announcementTitle`
    - `announcementDescription`
-4. اگر می‌خواهید بخشی موقتاً پنهان شود، از فیلدهای `show...` استفاده کنید.
-5. روی `Publish` بزنید.
+5. اگر می‌خواهید بخشی موقتاً پنهان شود، از فیلدهای `show...` استفاده کنید.
+6. روی `Publish` بزنید.
 
 ## 6. اگر محتوا Publish نشده باشد چه می‌شود؟
 

@@ -2,26 +2,23 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { ProductCard } from "@/components/product-card";
 import { filterStoreProducts, getStoreCategories, getStoreCategoryMeta } from "@/lib/content";
+import { buildPublicMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "محصولات"
-};
+export const metadata: Metadata = buildPublicMetadata({
+  title: "محصولات",
+  description: "فهرست محصولات و خدمات فروشگاه FumGPT با قیمت‌گذاری روشن، توضیح تحویل، و مسیر خرید قابل پیگیری.",
+  path: "/products"
+});
 
 type SearchParamsLike =
-  | Promise<{ category?: string }>
-  | { category?: string }
+  | Promise<{ category?: string | string[] }>
   | undefined;
 
 async function resolveSearchParams(searchParams: SearchParamsLike) {
-  if (!searchParams) {
-    return {} as { category?: string };
-  }
+  const params = (await searchParams) || {};
+  const category = Array.isArray(params.category) ? params.category[0] : params.category;
 
-  if (typeof (searchParams as Promise<{ category?: string }>).then === "function") {
-    return await (searchParams as Promise<{ category?: string }>);
-  }
-
-  return searchParams as { category?: string };
+  return { category };
 }
 
 export default async function ProductsPage({
@@ -52,17 +49,18 @@ export default async function ProductsPage({
             <span className="chip">{filteredProducts.length.toLocaleString("fa-IR")} محصول</span>
             <span className="chip">پشتیبانی فارسی</span>
             <Link href="/cart" className="chip chip-link">
-              رفتن به سبد خرید
+              سبد خرید
             </Link>
           </div>
         </div>
 
-        <div className="filter-pills">
+        <div className="filter-pills" aria-label="فیلتر دسته‌بندی محصولات">
           {categoryItems.map((item) => (
             <Link
               key={item.key}
               href={item.key === "all" ? "/products" : `/products?category=${item.key}`}
               className={`filter-pill ${selectedCategory === item.key ? "is-active" : ""}`}
+              aria-current={selectedCategory === item.key ? "page" : undefined}
             >
               {item.label}
             </Link>

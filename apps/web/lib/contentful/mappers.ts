@@ -231,6 +231,40 @@ export function mapContentfulHomepageSettings(
         fields?.newsAdminCalloutDescription ||
         fallbackHomePageContent.newsSection.adminCalloutDescription
     },
+    trustSection: {
+      isVisible: fields?.showTrustSection ?? fallbackHomePageContent.trustSection.isVisible,
+      eyebrow: fields?.trustEyebrow || fallbackHomePageContent.trustSection.eyebrow,
+      title: fields?.trustTitle || fallbackHomePageContent.trustSection.title,
+      points: pickStringList(fields?.trustPoints, fallbackHomePageContent.trustSection.points)
+    },
+    roadmapSection: {
+      isVisible: fields?.showRoadmapSection ?? fallbackHomePageContent.roadmapSection.isVisible,
+      eyebrow: fields?.roadmapEyebrow || fallbackHomePageContent.roadmapSection.eyebrow,
+      title: fields?.roadmapTitle || fallbackHomePageContent.roadmapSection.title,
+      phases: [
+        {
+          title:
+            fields?.roadmapPhase1Title || fallbackHomePageContent.roadmapSection.phases[0].title,
+          description:
+            fields?.roadmapPhase1Description ||
+            fallbackHomePageContent.roadmapSection.phases[0].description
+        },
+        {
+          title:
+            fields?.roadmapPhase2Title || fallbackHomePageContent.roadmapSection.phases[1].title,
+          description:
+            fields?.roadmapPhase2Description ||
+            fallbackHomePageContent.roadmapSection.phases[1].description
+        },
+        {
+          title:
+            fields?.roadmapPhase3Title || fallbackHomePageContent.roadmapSection.phases[2].title,
+          description:
+            fields?.roadmapPhase3Description ||
+            fallbackHomePageContent.roadmapSection.phases[2].description
+        }
+      ]
+    },
     announcement: {
       isVisible: fields?.showSupportBanner ?? fallbackHomePageContent.announcement.isVisible,
       label: fields?.announcementLabel || fallbackHomePageContent.announcement.label,

@@ -1,6 +1,8 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { Hero } from "@/components/hero";
 import { NewsSection } from "@/components/news-section";
+import { AnalyticsPageView } from "@/components/analytics-page-view";
 import { CategoryGrid } from "@/components/category-grid";
 import { ProductCard } from "@/components/product-card";
 import {
@@ -11,7 +13,15 @@ import {
   getStoreNews,
   getStorefrontSettings
 } from "@/lib/content";
+import { buildPublicMetadata } from "@/lib/seo";
 import { isExternalHref } from "@/lib/site";
+
+export const metadata: Metadata = buildPublicMetadata({
+  title: "فروشگاه هوش مصنوعی فارسی",
+  description:
+    "خرید شفاف محصولات و سرویس‌های هوش مصنوعی با محتوای فارسی، پشتیبانی روشن و مسیر سفارش واقعی.",
+  path: "/"
+});
 
 function PageAction({
   href,
@@ -50,6 +60,16 @@ export default async function HomePage() {
 
   return (
     <div className="homepage-shell">
+      <AnalyticsPageView
+        name="homepage_view"
+        route="/"
+        path="/"
+        metadata={{
+          featuredProductCount: featuredProducts.length,
+          newsArticleCount: newsArticles.length,
+          categoryCount: categoryCounts.length
+        }}
+      />
       <Hero
         featured={featuredProducts.slice(0, 4)}
         stats={heroStats}
@@ -116,39 +136,38 @@ export default async function HomePage() {
         <NewsSection articles={newsArticles.slice(0, 3)} content={homePageContent.newsSection} />
       ) : null}
 
-      <section className="section section-muted deferred-section">
-        <div className="container roadmap-grid">
-          <div className="surface roadmap-card">
-            <div className="eyebrow">چرا FumGPT</div>
-            <h2 className="section-title">یک ویترین روشن، مرتب و قابل اعتماد برای خرید دیجیتال</h2>
-            <ul className="feature-list-simple">
-              <li>هدر تمیز و سبک با ناوبری خوانا و اکشن‌های واضح</li>
-              <li>بنر اصلی روشن با CTAهای مستقیم و اعتمادساز</li>
-              <li>تب‌های دسته‌بندی و کارت‌های گرد برای مرور راحت‌تر</li>
-              <li>کارت محصول با قیمت‌گذاری شفاف و مسیر خرید مشخص</li>
-              <li>سازگاری کامل با CMS و توسعه فازهای بعدی روی همین ظاهر</li>
-            </ul>
-          </div>
+      {homePageContent.trustSection.isVisible || homePageContent.roadmapSection.isVisible ? (
+        <section className="section section-muted deferred-section">
+          <div className="container roadmap-grid">
+            {homePageContent.trustSection.isVisible ? (
+              <div className="surface roadmap-card">
+                <div className="eyebrow">{homePageContent.trustSection.eyebrow}</div>
+                <h2 className="section-title">{homePageContent.trustSection.title}</h2>
+                <ul className="feature-list-simple">
+                  {homePageContent.trustSection.points.map((point) => (
+                    <li key={point}>{point}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
 
-          <div className="surface roadmap-card accent-grid">
-            <div className="eyebrow">مسیر توسعه</div>
-            <div className="roadmap-points">
-              <div>
-                <strong>فروشگاه</strong>
-                <p>کاتالوگ زنده، خبرهای قابل مدیریت و تجربه مرور حرفه‌ای برای عرضه عمومی.</p>
+            {homePageContent.roadmapSection.isVisible ? (
+              <div className="surface roadmap-card accent-grid">
+                <div className="eyebrow">{homePageContent.roadmapSection.eyebrow}</div>
+                <h2 className="section-title">{homePageContent.roadmapSection.title}</h2>
+                <div className="roadmap-points">
+                  {homePageContent.roadmapSection.phases.map((phase) => (
+                    <div key={phase.title}>
+                      <strong>{phase.title}</strong>
+                      <p>{phase.description}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div>
-                <strong>آکادمی</strong>
-                <p>دوره‌ها، بوت‌کمپ‌ها و محتوای آموزشی می‌توانند روی همین زبان طراحی اضافه شوند.</p>
-              </div>
-              <div>
-                <strong>بازارچه ایجنت</strong>
-                <p>در فاز بعد، سرویس‌ها و فروشندگان جدید بدون تغییر در معماری اصلی به همین ویترین متصل می‌شوند.</p>
-              </div>
-            </div>
+            ) : null}
           </div>
-        </div>
-      </section>
+        </section>
+      ) : null}
 
       {homePageContent.announcement.isVisible ? (
         <section className="section section-last deferred-section">

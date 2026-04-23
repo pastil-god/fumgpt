@@ -6,6 +6,10 @@
     "dev": "pnpm --filter web dev",
     "dev:turbo": "pnpm --filter web dev:turbo",
     "build": "pnpm --filter web build",
-    "start": "pnpm --filter web start"
+    "start": "pnpm --filter web start",
+    "db:generate": "pnpm --filter web db:generate",
+    "db:migrate": "pnpm --filter web db:migrate",
+    "db:seed": "pnpm --filter web db:seed",
+    "db:studio": "pnpm --filter web db:studio"
   }
 }
