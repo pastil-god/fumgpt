@@ -12,7 +12,7 @@ By default, events are stored in the local application database table:
 
 - `analytics_events`
 
-You can inspect them locally with Prisma Studio or any SQLite viewer pointed at the current app database.
+You can inspect them locally with Prisma Studio or any PostgreSQL client pointed at the current app database.
 
 Suggested local flow:
 

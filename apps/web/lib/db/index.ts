@@ -8,12 +8,13 @@ export function hashSecret(value: string) {
 export async function getDatabaseHealth() {
   const configured = Boolean(process.env.DATABASE_URL);
   const checkedAt = new Date().toISOString();
+  const provider = "postgresql";
 
   if (!configured) {
     return {
       configured: false,
       connected: false,
-      provider: "sqlite",
+      provider,
       mode: "not-configured" as const,
       latencyMs: null,
       checkedAt
@@ -28,7 +29,7 @@ export async function getDatabaseHealth() {
     return {
       configured: true,
       connected: true,
-      provider: "sqlite",
+      provider,
       mode: "connected" as const,
       latencyMs: Date.now() - startedAt,
       checkedAt
@@ -37,7 +38,7 @@ export async function getDatabaseHealth() {
     return {
       configured: true,
       connected: false,
-      provider: "sqlite",
+      provider,
       mode: "error" as const,
       latencyMs: Date.now() - startedAt,
       checkedAt

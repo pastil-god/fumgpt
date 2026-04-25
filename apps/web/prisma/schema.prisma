@@ -3,8 +3,14 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  // Neon + Prisma setup:
+  // DATABASE_URL: pooled connection (Neon pooler host) for app runtime and Prisma Client.
+  //   Recommended query params: sslmode=require&pgbouncer=true&connect_timeout=15
+  // DIRECT_URL: direct connection (non-pooler host) for Prisma Migrate commands.
+  //   Recommended query params: sslmode=require&connect_timeout=15
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {

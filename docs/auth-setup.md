@@ -17,7 +17,7 @@ Prepared in the architecture:
 For local development in `apps/web/.env`:
 
 ```env
-DATABASE_URL=file:./dev.db
+DATABASE_URL=postgresql://DB_USER:DB_PASSWORD@DB_HOST:5432/DB_NAME?sslmode=require
 AUTH_EMAIL_TRANSPORT=mock
 AUTH_EMAIL_FROM=auth@example.com
 AUTH_SMS_TRANSPORT=mock
@@ -68,5 +68,5 @@ SMTP_PASS=
 ## Notes
 
 - Contentful is still only for content/CMS.
-- Auth and session data live in Prisma/SQLite.
+- Auth and session data live in Prisma/PostgreSQL.
 - The account page now depends on a real authenticated session.

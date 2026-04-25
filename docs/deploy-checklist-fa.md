@@ -18,6 +18,8 @@ NEXT_PUBLIC_CMS_DASHBOARD_URL=https://app.contentful.com/spaces/your-space-id
 CONTENTFUL_SPACE_ID=your_space_id
 CONTENTFUL_DELIVERY_TOKEN=your_delivery_token
 CONTENTFUL_ENVIRONMENT=master
+DATABASE_URL=postgresql://DB_USER:DB_PASSWORD@EP-XXXX-POOLER.REGION.aws.neon.tech/DB_NAME?sslmode=require&pgbouncer=true&connect_timeout=15
+DIRECT_URL=postgresql://DB_USER:DB_PASSWORD@EP-XXXX.REGION.aws.neon.tech/DB_NAME?sslmode=require&connect_timeout=15
 ```
 
 اگر امروز CMS را هنوز کامل وصل نکرده‌ای:
@@ -25,7 +27,17 @@ CONTENTFUL_ENVIRONMENT=master
 - می‌توانی مقادیر Contentful را خالی بگذاری
 - سایت همچنان با داده‌های fallback بالا می‌آید
 
-## 2. نصب و بیلد
+برای Vercel هم همین دو متغیر (`DATABASE_URL` و `DIRECT_URL`) را برای محیط‌های `Preview` و `Production` تنظیم کن.
+
+## 2. اعمال migration دیتابیس
+
+قبل از بالا آوردن نسخه production، migrationها را اعمال کن:
+
+```bash
+pnpm db:deploy
+```
+
+## 3. نصب و بیلد
 
 ```bash
 pnpm install
@@ -33,7 +45,7 @@ pnpm build
 pnpm start
 ```
 
-## 3. بررسی بعد از بالا آمدن
+## 4. بررسی بعد از بالا آمدن
 
 این مسیرها را تست کن:
 
@@ -47,7 +59,7 @@ pnpm start
 - `/api/health`
 - `/api/integrations`
 
-## 4. تست سلامت
+## 5. تست سلامت
 
 خروجی `/api/health` باید چیزی شبیه این باشد:
 
@@ -59,7 +71,7 @@ pnpm start
 }
 ```
 
-## 5. اگر Contentful وصل است
+## 6. اگر Contentful وصل است
 
 موارد زیر را حتماً از داشبورد تست کن:
 
@@ -70,7 +82,7 @@ pnpm start
 - یک خبر جدید منتشر کن
 - فیلدهای `siteSettings` را تغییر بده و مطمئن شو هیرو تغییر می‌کند
 
-## 6. نکات مهم برای نسخه امروز
+## 7. نکات مهم برای نسخه امروز
 
 - پرداخت هنوز غیرفعال است و نباید فعال شود.
 - ورود فعلی `mock session` است و برای دمو/نمایش عمومی مناسب است.
