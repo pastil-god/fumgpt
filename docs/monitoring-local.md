@@ -79,7 +79,7 @@ Get-Content .\apps\web\.logs\storefront.log -Wait
 فعلاً readiness روی این موارد حساس است:
 
 - دیتابیس باید تنظیم و قابل اتصال باشد
-- اگر auth ایمیلی روی `smtp` باشد، تنظیمات SMTP باید کامل باشد
+- اگر auth ایمیلی روی `resend` باشد، `RESEND_API_KEY` و `AUTH_EMAIL_FROM` باید تنظیم شده باشند
 
 مواردی مثل:
 

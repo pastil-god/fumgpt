@@ -20,11 +20,8 @@ For local development in `apps/web/.env`:
 DATABASE_URL=postgresql://DB_USER:DB_PASSWORD@DB_HOST:5432/DB_NAME?sslmode=require
 AUTH_EMAIL_TRANSPORT=mock
 AUTH_EMAIL_FROM=auth@example.com
+RESEND_API_KEY=
 AUTH_SMS_TRANSPORT=mock
-SMTP_HOST=
-SMTP_PORT=587
-SMTP_USER=
-SMTP_PASS=
 ```
 
 ## Transport modes
@@ -36,9 +33,14 @@ SMTP_PASS=
   - no paid service required
   - OTP is logged on the server and also shown on the login page in development mode
 
-- `AUTH_EMAIL_TRANSPORT=smtp`
-  - sends real email through SMTP
-  - requires `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`
+- `AUTH_EMAIL_TRANSPORT=resend`
+  - sends real email through Resend
+  - requires `RESEND_API_KEY`
+  - requires `AUTH_EMAIL_FROM` to use an address on a verified Resend domain
+  - fails clearly if the API key or from address is missing
+
+Create the Resend API key and verify the sending domain at <https://resend.com/domains>.
+Use `onboarding@resend.dev` only for Resend test examples, not production storefront login.
 
 ### SMS
 

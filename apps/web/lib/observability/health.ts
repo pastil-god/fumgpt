@@ -9,7 +9,7 @@ function getEmailAuthReadiness() {
   const transportInfo = getAuthTransportInfo();
   const emailTransport = transportInfo.email;
 
-  if (emailTransport !== "smtp") {
+  if (emailTransport === "mock") {
     return {
       transport: emailTransport,
       ready: true,
@@ -17,12 +17,20 @@ function getEmailAuthReadiness() {
     };
   }
 
-  const ready = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+  if (emailTransport !== "resend") {
+    return {
+      transport: emailTransport,
+      ready: false,
+      reason: "auth-email-transport-unsupported"
+    };
+  }
+
+  const ready = Boolean(process.env.RESEND_API_KEY && process.env.AUTH_EMAIL_FROM);
 
   return {
     transport: emailTransport,
     ready,
-    reason: ready ? "smtp-configured" : "smtp-missing-config"
+    reason: ready ? "resend-configured" : "resend-missing-config"
   };
 }
 
