@@ -105,6 +105,30 @@ export const dbUsers = {
     });
   },
 
+  listForAdmin(limit = 50) {
+    return prisma.user.findMany({
+      include: {
+        profile: true,
+        orders: {
+          orderBy: {
+            createdAt: "desc"
+          },
+          take: 3
+        },
+        _count: {
+          select: {
+            orders: true,
+            supportRequests: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: "desc"
+      },
+      take: limit
+    });
+  },
+
   searchForAdminLookup(query: string, limit = 12) {
     const normalizedQuery = query.trim();
 

@@ -10,6 +10,39 @@ importers:
 
   apps/web:
     dependencies:
+      '@fontsource/almarai':
+        specifier: ^5.2.8
+        version: 5.2.8
+      '@fontsource/cairo':
+        specifier: ^5.2.7
+        version: 5.2.7
+      '@fontsource/changa':
+        specifier: ^5.2.8
+        version: 5.2.8
+      '@fontsource/ibm-plex-sans-arabic':
+        specifier: ^5.2.9
+        version: 5.2.9
+      '@fontsource/inter':
+        specifier: ^5.2.8
+        version: 5.2.8
+      '@fontsource/lalezar':
+        specifier: ^5.2.7
+        version: 5.2.7
+      '@fontsource/markazi-text':
+        specifier: ^5.2.9
+        version: 5.2.9
+      '@fontsource/noto-naskh-arabic':
+        specifier: ^5.2.11
+        version: 5.2.11
+      '@fontsource/noto-sans-arabic':
+        specifier: ^5.2.10
+        version: 5.2.10
+      '@fontsource/tajawal':
+        specifier: ^5.2.7
+        version: 5.2.7
+      '@fontsource/vazirmatn':
+        specifier: ^5.2.8
+        version: 5.2.8
       '@prisma/client':
         specifier: 6.19.3
         version: 6.19.3(prisma@6.19.3(typescript@6.0.3))(typescript@6.0.3)
@@ -46,6 +79,39 @@ packages:
 
   '@emnapi/runtime@1.10.0':
     resolution: {integrity: sha512-ewvYlk86xUoGI0zQRNq/mC+16R1QeDlKQy21Ki3oSYXNgLb45GV1P6A0M+/s6nyCuNDqe5VpaY84BzXGwVbwFA==}
+
+  '@fontsource/almarai@5.2.8':
+    resolution: {integrity: sha512-Y214OHk6rYYCDIwjpVM6Y4iaPIH7JSSflF7xmE5ejKZkhVdMGwhgqIdo4kPMgoaVfo+XL5qeOzGQF9DTnZS9mg==}
+
+  '@fontsource/cairo@5.2.7':
+    resolution: {integrity: sha512-t9UGffaDSoAHYmGS5bR5rM79B93wrhj38Co9mnT43B/PjuaXc6ErrMo+upL2I0Yvik7I47uTC79aRmBWPh0Y6Q==}
+
+  '@fontsource/changa@5.2.8':
+    resolution: {integrity: sha512-Y3Zwt1Qq5+qArz8NaYOP4hI6U5yBAdfGeuOMxNJb0fHYBoJaBCLaVHvxx6Px/RXZLqCsFaQee6RPRraOxerT1A==}
+
+  '@fontsource/ibm-plex-sans-arabic@5.2.9':
+    resolution: {integrity: sha512-mAs+anYcmatmhTuYApDy/CEEu5iYcfalXp2DB1gBN/6o2ex24lcBs635bwtgV5BNbByCYslIGsQvD4X6s7eVgw==}
+
+  '@fontsource/inter@5.2.8':
+    resolution: {integrity: sha512-P6r5WnJoKiNVV+zvW2xM13gNdFhAEpQ9dQJHt3naLvfg+LkF2ldgSLiF4T41lf1SQCM9QmkqPTn4TH568IRagg==}
+
+  '@fontsource/lalezar@5.2.7':
+    resolution: {integrity: sha512-S2rnPkZKVLKkyHhml4btt5MrXLH6ECgjUeVY/Zvg5cvAlmIhcQhYydoag651oO9xisD5FLolLqqVy46xav1/qQ==}
+
+  '@fontsource/markazi-text@5.2.9':
+    resolution: {integrity: sha512-rtjtWs+l3w+d7w0mCeNEl45V+1ipmiCRSm4faMy7eJ0lKpUKwOI5BF5WLz03PMVaDAuIvDJMtuIqbcanoW5Mfw==}
+
+  '@fontsource/noto-naskh-arabic@5.2.11':
+    resolution: {integrity: sha512-mi4QOG3EK+iho//vjB+13Ww4Oy1ulkgBgUuVpVZQBjBPkaMoHOJZBpSIZOXTzL7ZFTvMPzdSTvt0juE9NVl+PA==}
+
+  '@fontsource/noto-sans-arabic@5.2.10':
+    resolution: {integrity: sha512-Hgj3NwQJ0NquIADW3hFboFjsts4UvEOJQ8tOX0bhQZgpNKHsMawjv/1SZnq0QvRbP6efHTZM/A1k7tdy9S6sbA==}
+
+  '@fontsource/tajawal@5.2.7':
+    resolution: {integrity: sha512-EzswJ4JoFmYQ7hn7O5Do7Azd1tjzujSEzN+DvTZNcAwZ3usfPvEJ3hTQtYv9VN+mUH4flOi6LedtqCkVUHZs9A==}
+
+  '@fontsource/vazirmatn@5.2.8':
+    resolution: {integrity: sha512-WoDgv8R/y1gwgTS8Q2uL8d2ayeSGNv2IrYQ4wHmJkVwYPb8KVODrqbbvEjBqLOo5WP5kLJIrO06FRDMnSFuCaA==}
 
   '@img/colour@1.1.0':
     resolution: {integrity: sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==}
@@ -521,6 +587,28 @@ snapshots:
     dependencies:
       tslib: 2.8.1
     optional: true
+
+  '@fontsource/almarai@5.2.8': {}
+
+  '@fontsource/cairo@5.2.7': {}
+
+  '@fontsource/changa@5.2.8': {}
+
+  '@fontsource/ibm-plex-sans-arabic@5.2.9': {}
+
+  '@fontsource/inter@5.2.8': {}
+
+  '@fontsource/lalezar@5.2.7': {}
+
+  '@fontsource/markazi-text@5.2.9': {}
+
+  '@fontsource/noto-naskh-arabic@5.2.11': {}
+
+  '@fontsource/noto-sans-arabic@5.2.10': {}
+
+  '@fontsource/tajawal@5.2.7': {}
+
+  '@fontsource/vazirmatn@5.2.8': {}
 
   '@img/colour@1.1.0':
     optional: true

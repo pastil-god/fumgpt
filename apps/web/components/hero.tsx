@@ -1,7 +1,11 @@
+import Image from "next/image";
 import Link from "next/link";
+import type { CSSProperties } from "react";
+import { EditableAction, EditableText } from "@/components/admin/homepage-inline-editor";
 import type { Product } from "@/lib/mock-data";
 import { homePageContent, type HomePageContent } from "@/lib/mock-homepage";
 import { fallbackStorefrontSettings, isExternalHref, type StorefrontSettings } from "@/lib/site";
+import { getHomepageFieldStyleCss, type HomepageFieldStyles } from "@/lib/settings/inline-homepage";
 
 type Props = {
   featured?: Product[];
@@ -13,230 +17,251 @@ type Props = {
   };
   content?: HomePageContent["hero"];
   storefront?: Pick<StorefrontSettings, "trustBadges" | "support">;
+  canInlineEdit?: boolean;
+  fieldStyles?: HomepageFieldStyles;
 };
 
 function formatStat(value: number) {
   return value.toLocaleString("fa-IR");
 }
 
-function HeroSupportLink({
-  href,
-  label
-}: {
-  href: string;
-  label: string;
-}) {
-  if (isExternalHref(href)) {
-    return (
-      <a className="chip chip-link" href={href} target="_blank" rel="noreferrer">
-        {label}
-      </a>
-    );
-  }
-
-  return (
-    <Link className="chip chip-link" href={href}>
-      {label}
-    </Link>
-  );
-}
-
 function HeroAction({
   href,
   label,
-  className
+  className,
+  style
 }: {
   href: string;
   label: string;
   className: string;
+  style?: CSSProperties;
 }) {
   if (isExternalHref(href)) {
     return (
-      <a className={className} href={href} target="_blank" rel="noreferrer">
+      <a className={className} href={href} target="_blank" rel="noreferrer" style={style}>
         {label}
       </a>
     );
   }
 
   return (
-    <Link className={className} href={href}>
+    <Link className={className} href={href} prefetch={false} style={style}>
       {label}
     </Link>
   );
 }
 
-export function Hero({ featured, stats, content, storefront }: Props) {
+export function Hero({ featured, stats, content, storefront, canInlineEdit = false, fieldStyles = {} }: Props) {
   const resolvedStorefront = storefront || {
     trustBadges: fallbackStorefrontSettings.trustBadges,
     support: fallbackStorefrontSettings.support
   };
   const resolvedContent = content || homePageContent.hero;
-  const heroTrustBadges = resolvedStorefront.trustBadges.slice(0, 3);
-
-  if (!stats) {
-    return (
-      <section className="hero-section">
-        <div className="container hero-shell">
-          <div className="hero-grid">
-            <div className="hero-copy surface hero-copy-card">
-              <div className="hero-copy-main">
-                <div className="hero-badge-row">
-                  <div className="eyebrow">{resolvedContent.eyebrow}</div>
-                  <span className="hero-status-pill">در حال بارگذاری</span>
-                </div>
-
-                <div className="hero-copy-intro">
-                  <h1>
-                    {resolvedContent.titleLead} <span>{resolvedContent.titleHighlight}</span>{" "}
-                    {resolvedContent.titleTail}
-                  </h1>
-                  <p>{resolvedContent.description}</p>
-                </div>
-              </div>
-
-              <div className="hero-secondary-grid">
-                <div className="hero-search">
-                  <div>
-                    <strong>{resolvedContent.quickStartTitle}</strong>
-                    <span>{resolvedContent.quickStartText}</span>
-                  </div>
-                  <Link className="chip chip-link" href="/products" prefetch={false}>
-                    مرور فروشگاه
-                  </Link>
-                </div>
-              </div>
-            </div>
-
-            <div className="surface hero-market-card">
-              <div className="hero-preview-header">
-                <div>
-                  <span className="preview-pill">{resolvedContent.marketLabel}</span>
-                  <h2>{resolvedContent.marketTitle}</h2>
-                </div>
-              </div>
-
-              <div className="hero-market-feature">
-                <div>
-                  <small>{resolvedContent.marketLabel}</small>
-                  <strong>{resolvedContent.marketDescription}</strong>
-                </div>
-                <span className="hero-market-badge">{resolvedContent.marketBadge}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  const { productCount, activeCategoryCount, brandCount, maxDiscount } = stats;
-  const safeFeatured = (featured || []).slice(0, 2);
+  const heroTrustBadges = resolvedStorefront.trustBadges.slice(0, 4);
+  const safeFeatured = (featured || []).slice(0, 3);
+  const productCount = stats?.productCount || 0;
+  const activeCategoryCount = stats?.activeCategoryCount || 0;
+  const brandCount = stats?.brandCount || 0;
+  const maxDiscount = stats?.maxDiscount || 0;
 
   return (
-    <section className="hero-section">
-      <div className="container hero-shell">
-        <div className="hero-grid">
-          <div className="hero-copy surface hero-copy-card">
+    <section className="hero-section premium-hero-section">
+      <div className="container hero-shell premium-hero-shell">
+        <div className="premium-hero-grid">
+          <div className="hero-copy surface hero-copy-card premium-hero-copy">
             <div className="hero-copy-main">
               <div className="hero-badge-row">
-                <div className="eyebrow">{resolvedContent.eyebrow}</div>
-                <span className="hero-status-pill">{resolvedContent.statusLabel}</span>
+                {canInlineEdit ? (
+                  <EditableText field="heroEyebrow" as="div" className="eyebrow" label="برچسب بالای Hero" />
+                ) : (
+                  <div className="eyebrow">{resolvedContent.eyebrow}</div>
+                )}
+                {canInlineEdit ? (
+                  <EditableText field="heroStatusLabel" as="span" className="hero-status-pill" label="وضعیت کوچک Hero" />
+                ) : (
+                  <span className="hero-status-pill">{resolvedContent.statusLabel}</span>
+                )}
               </div>
 
-              <div className="hero-copy-intro">
-                <h1>
-                  {resolvedContent.titleLead} <span>{resolvedContent.titleHighlight}</span>{" "}
-                  {resolvedContent.titleTail}
-                </h1>
-                <p>{resolvedContent.description}</p>
-              </div>
-            </div>
-
-            <div className="hero-cta-row">
-              <HeroAction
-                className="btn btn-primary btn-large"
-                href={resolvedContent.primaryCtaHref}
-                label={resolvedContent.primaryCtaLabel}
-              />
-              <HeroAction
-                className="btn btn-secondary btn-large"
-                href={resolvedContent.secondaryCtaHref}
-                label={resolvedContent.secondaryCtaLabel}
-              />
-            </div>
-
-            <div className="hero-secondary-grid">
-              <div className="hero-search">
-                <div>
-                  <strong>{resolvedContent.quickStartTitle}</strong>
-                  <span>{resolvedContent.quickStartText}</span>
-                </div>
-                <Link className="chip chip-link" href="/products" prefetch={false}>
-                  همه دسته‌ها
-                </Link>
-              </div>
-
-              <div className="hero-proof-strip">
-                <div>
-                  <strong>{resolvedContent.proofTitle}</strong>
-                  <span>{resolvedContent.proofText}</span>
-                </div>
-                <HeroSupportLink
-                  href={resolvedStorefront.support.helpCtaHref}
-                  label={resolvedStorefront.support.helpCtaLabel}
-                />
+              <div className="hero-copy-intro premium-hero-intro">
+                {canInlineEdit ? (
+                  <>
+                    <h1>
+                      <EditableText field="heroTitleLead" as="span" label="بخش اول عنوان Hero" />{" "}
+                      <span>
+                        <EditableText field="heroTitleHighlight" as="span" label="بخش برجسته عنوان Hero" />
+                      </span>{" "}
+                      <EditableText field="heroTitleTail" as="span" label="ادامه عنوان Hero" />
+                    </h1>
+                    <EditableText field="heroDescription" as="p" label="توضیح Hero" multiline />
+                  </>
+                ) : (
+                  <>
+                    <h1>
+                      <span style={getHomepageFieldStyleCss(fieldStyles.heroTitleLead)}>
+                        {resolvedContent.titleLead}
+                      </span>{" "}
+                      <span style={getHomepageFieldStyleCss(fieldStyles.heroTitleHighlight)}>
+                        {resolvedContent.titleHighlight}
+                      </span>{" "}
+                      <span style={getHomepageFieldStyleCss(fieldStyles.heroTitleTail)}>
+                        {resolvedContent.titleTail}
+                      </span>
+                    </h1>
+                    <p style={getHomepageFieldStyleCss(fieldStyles.heroDescription)}>{resolvedContent.description}</p>
+                  </>
+                )}
               </div>
             </div>
 
-            <div className="hero-trust-row">
-              {heroTrustBadges.map((pill) => (
-                <span key={pill} className="chip">
-                  {pill}
-                </span>
-              ))}
+            <div className="hero-cta-row premium-hero-cta">
+              {canInlineEdit ? (
+                <>
+                  <EditableAction
+                    className="btn btn-primary btn-large"
+                    labelField="heroPrimaryCtaLabel"
+                    hrefField="heroPrimaryCtaHref"
+                    label="متن CTA اصلی"
+                    hrefLabel="لینک CTA اصلی"
+                  />
+                  <EditableAction
+                    className="btn btn-secondary btn-large"
+                    labelField="heroSecondaryCtaLabel"
+                    hrefField="heroSecondaryCtaHref"
+                    label="متن CTA دوم"
+                    hrefLabel="لینک CTA دوم"
+                  />
+                </>
+              ) : (
+                <>
+                  <HeroAction
+                    className="btn btn-primary btn-large"
+                    href={resolvedContent.primaryCtaHref}
+                    label={resolvedContent.primaryCtaLabel}
+                    style={getHomepageFieldStyleCss(fieldStyles.heroPrimaryCtaLabel)}
+                  />
+                  <HeroAction
+                    className="btn btn-secondary btn-large"
+                    href={resolvedContent.secondaryCtaHref}
+                    label={resolvedContent.secondaryCtaLabel}
+                    style={getHomepageFieldStyleCss(fieldStyles.heroSecondaryCtaLabel)}
+                  />
+                </>
+              )}
             </div>
 
-            <div className="hero-stats">
+            <div className="premium-hero-trust-panel">
+              <div>
+                {canInlineEdit ? (
+                  <>
+                    <EditableText field="heroProofTitle" as="strong" label="عنوان اعتماد Hero" />
+                    <EditableText field="heroProofText" as="p" label="متن اعتماد Hero" multiline />
+                  </>
+                ) : (
+                  <>
+                    <strong>{resolvedContent.proofTitle}</strong>
+                    <p>{resolvedContent.proofText}</p>
+                  </>
+                )}
+              </div>
+              <div className="hero-trust-row">
+                {heroTrustBadges.map((pill) => (
+                  <span key={pill} className="chip">
+                    {pill}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="hero-stats premium-hero-stats">
               <div className="stat-card stat-card-emphasis">
                 <strong>{formatStat(productCount)}</strong>
-                <span>محصول آماده نمایش در فروشگاه</span>
+                <span>محصول قابل سفارش</span>
               </div>
               <div className="stat-card">
                 <strong>{formatStat(activeCategoryCount)}</strong>
-                <span>دسته‌بندی اصلی برای شروع سریع</span>
+                <span>مسیر خرید اصلی</span>
               </div>
               <div className="stat-card">
-                <strong>{formatStat(brandCount)}</strong>
-                <span>برند و سرویس قابل ارائه</span>
+                <strong>{formatStat(brandCount)}+</strong>
+                <span>برند و سرویس</span>
               </div>
               <div className="stat-card">
                 <strong>{formatStat(maxDiscount)}٪</strong>
-                <span>بیشترین تخفیف فعال فروشگاه</span>
+                <span>بیشترین تخفیف</span>
               </div>
             </div>
           </div>
 
-          <div className="surface hero-market-card">
-            <div className="hero-preview-header">
+          <aside className="surface hero-market-card premium-hero-visual-card" aria-label="نمای تصویری فروشگاه AI">
+            <div className="hero-preview-header premium-hero-visual-header">
               <div>
-                <span className="preview-pill">{resolvedContent.marketLabel}</span>
-                <h2>{resolvedContent.marketTitle}</h2>
+                {canInlineEdit ? (
+                  <EditableText field="heroMarketLabel" as="span" className="preview-pill" label="برچسب کارت سمت راست" />
+                ) : (
+                  <span className="preview-pill">{resolvedContent.marketLabel}</span>
+                )}
+                <h2>
+                  {canInlineEdit ? (
+                    <EditableText field="heroMarketTitle" as="span" label="عنوان کارت سمت راست" />
+                  ) : (
+                    resolvedContent.marketTitle
+                  )}
+                </h2>
+                {canInlineEdit ? (
+                  <EditableText
+                    field="heroMarketDescription"
+                    as="p"
+                    className="muted"
+                    label="توضیح کارت سمت راست"
+                    multiline
+                  />
+                ) : (
+                  <p className="muted">{resolvedContent.marketDescription}</p>
+                )}
               </div>
-              <div className="hero-score-card">
-                <strong>{formatStat(brandCount)}+</strong>
-                <span>برند قابل ارائه</span>
+              {canInlineEdit ? (
+                <EditableText field="heroMarketBadge" as="span" className="hero-market-badge" label="Badge کارت سمت راست" />
+              ) : (
+                <span className="hero-market-badge">{resolvedContent.marketBadge}</span>
+              )}
+            </div>
+
+            <div className="premium-hero-illustration">
+              <Image
+                src="/illustrations/hero-ai-marketplace.svg"
+                alt="نمای انتزاعی بازار ابزارهای هوش مصنوعی"
+                width={780}
+                height={585}
+                priority
+              />
+              <div className="premium-floating-card premium-floating-card-top">
+                <strong>{formatStat(productCount)} محصول</strong>
+                <span>برای نیازهای AI</span>
+              </div>
+              <div className="premium-floating-card premium-floating-card-bottom">
+                <strong>سفارش شفاف</strong>
+                <span>تحویل و پیگیری روشن</span>
               </div>
             </div>
 
-            <div className="hero-market-feature">
+            <div className="hero-market-feature premium-market-note">
               <div>
-                <small>انتخاب سریع</small>
-                <strong>{resolvedContent.marketDescription}</strong>
+                {canInlineEdit ? (
+                  <>
+                    <EditableText field="heroQuickStartTitle" as="small" label="عنوان شروع سریع" />
+                    <EditableText field="heroQuickStartText" as="strong" label="متن شروع سریع" />
+                  </>
+                ) : (
+                  <>
+                    <small>{resolvedContent.quickStartTitle}</small>
+                    <strong>{resolvedContent.quickStartText}</strong>
+                  </>
+                )}
               </div>
-              <span className="hero-market-badge">{resolvedContent.marketBadge}</span>
             </div>
 
-            <div className="mini-product-stack">
+            <div className="mini-product-stack premium-mini-products">
               {safeFeatured.length > 0 ? (
                 safeFeatured.map((item) => (
                   <Link href={`/products/${item.slug}`} key={item.id} className="mini-product" prefetch={false}>
@@ -253,44 +278,32 @@ export function Hero({ featured, stats, content, storefront }: Props) {
               ) : (
                 <div className="mini-product">
                   <div className="mini-copy">
-                    <strong>محصولات منتخب در حال بارگذاری هستند</strong>
-                    <span>پس از آماده شدن داده‌ها، پیشنهادهای ویژه این بخش به‌صورت خودکار نمایش داده می‌شوند.</span>
+                    <strong>محصولات منتخب آماده نمایش هستند</strong>
+                    <span>پس از انتخاب محصول featured، پیشنهادها در این قسمت دیده می‌شوند.</span>
                   </div>
                 </div>
               )}
             </div>
-
-            <div className="launch-banner">
-              <div>
-                <small>{resolvedContent.proofTitle}</small>
-                <strong>{resolvedContent.proofText}</strong>
-              </div>
-              <ul className="feature-list-simple compact">
-                {heroTrustBadges.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
+          </aside>
         </div>
 
-        <div className="hero-assurance-grid deferred-block">
+        <div className="hero-assurance-grid deferred-block premium-assurance-grid">
           <div className="surface hero-assurance-card">
-            <small>تحویل و فعال‌سازی</small>
-            <strong>نحوه تحویل هر سرویس شفاف و قابل‌فهم نمایش داده می‌شود</strong>
-            <p>از فعال‌سازی روی ایمیل شخصی تا تحویل دستی یا دیجیتال، مسیر هر محصول از ابتدا روشن است.</p>
+            <small>شفافیت خرید</small>
+            <strong>قبل از ثبت سفارش می‌دانی چه چیزی می‌خری و چطور تحویل می‌گیری</strong>
+            <p>هر محصول با توضیح، قیمت، وضعیت تحویل و مسیر پیگیری مشخص نمایش داده می‌شود.</p>
           </div>
 
           <div className="surface hero-assurance-card">
-            <small>اعتماد خرید</small>
-            <strong>پشتیبانی فارسی و راه ارتباطی مستقیم در همان اسکرول اول دیده می‌شود</strong>
-            <p>کاربر بدون جست‌وجوی اضافه می‌فهمد از کجا شروع کند، چطور خرید را پیگیری کند و با چه مسیری جلو برود.</p>
+            <small>پشتیبانی انسانی</small>
+            <strong>برای انتخاب سرویس مناسب، راهنمایی فارسی در دسترس است</strong>
+            <p>کاربر می‌تواند قبل از خرید درباره پلن، کاربرد و زمان تحویل سؤال کند.</p>
           </div>
 
           <div className="surface hero-assurance-card">
-            <small>هویت برند</small>
-            <strong>FumGPT حالا بیشتر شبیه یک بازار دیجیتال ایرانی تمیز و آماده رشد دیده می‌شود</strong>
-            <p>چیدمان روشن، کارت‌های منظم و سلسله‌مراتب بهتر، حس یک فروشگاه حرفه‌ای و قابل اعتماد را تقویت می‌کند.</p>
+            <small>آماده رشد</small>
+            <strong>هسته فروشگاه برای آکادمی، API و بازارچه ایجنت‌ها قابل توسعه است</strong>
+            <p>ساختار محصولی ساده نگه داشته شده تا فازهای بعدی بدون بازنویسی سنگین اضافه شوند.</p>
           </div>
         </div>
       </div>

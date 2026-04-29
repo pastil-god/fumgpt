@@ -14,6 +14,7 @@ export type StorefrontSettings = {
   siteDescription: string;
   brandTagline: string;
   logoUrl?: string;
+  faviconUrl?: string;
   topBarText: string;
   topBarHighlights: string[];
   support: {
@@ -32,6 +33,11 @@ export type StorefrontSettings = {
     description: string;
     copyright: string;
   };
+  appearance: {
+    primaryColor: string;
+    secondaryColor: string;
+    fontFamily: string;
+  };
   trustBadges: string[];
   navigation: NavigationLink[];
 };
@@ -41,18 +47,19 @@ const fallbackSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:30
 
 export const fallbackStorefrontSettings: StorefrontSettings = {
   brandName: fallbackBrandName,
-  siteTitle: `${fallbackBrandName} | فروشگاه فارسی سرویس‌های هوش مصنوعی`,
+  siteTitle: `${fallbackBrandName} | بازار فارسی ابزارهای هوش مصنوعی`,
   siteDescription:
-    "فروشگاه فارسی محصولات و سرویس‌های هوش مصنوعی با تجربه خرید روشن، محتوای CMS-محور و مسیر آماده برای لانچ عمومی.",
-  brandTagline: "بازار فارسی سرویس‌های دیجیتال و ابزارهای هوش مصنوعی",
-  topBarText: "فروشگاه روشن و آماده مدیریت برای تیم‌های محتوایی و فروش",
-  topBarHighlights: ["تحویل دیجیتال", "پشتیبانی فارسی", "مدیریت آسان محتوا"],
+    "بازار فارسی ابزارها و سرویس‌های هوش مصنوعی با خرید شفاف، تحویل دیجیتال، پشتیبانی انسانی و سفارش قابل پیگیری.",
+  brandTagline: "بازار فارسی ابزارها و سرویس‌های هوش مصنوعی",
+  faviconUrl: "/icon.svg",
+  topBarText: "خرید شفاف ابزارهای AI با پشتیبانی فارسی و تحویل قابل پیگیری",
+  topBarHighlights: ["تحویل دیجیتال", "پشتیبانی فارسی", "سفارش قابل پیگیری"],
   support: {
     phone: process.env.NEXT_PUBLIC_SUPPORT_PHONE || "0900 000 0000",
     email: process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "support@fumgpt.com",
     address:
       process.env.NEXT_PUBLIC_SUPPORT_ADDRESS ||
-      "پاسخ‌گویی آنلاین، هماهنگی از طریق تلگرام و تحویل دیجیتال در سراسر ایران",
+      "پاسخ‌گویی آنلاین، هماهنگی از طریق پشتیبانی و تحویل دیجیتال در سراسر ایران",
     helpCtaLabel: "مشاوره و هماهنگی خرید",
     helpCtaHref:
       process.env.NEXT_PUBLIC_SUPPORT_TELEGRAM ||
@@ -69,10 +76,15 @@ export const fallbackStorefrontSettings: StorefrontSettings = {
   },
   footer: {
     description:
-      "FumGPT برای فروش حرفه‌ای محصولات دیجیتال، خبرها و محتوای قابل‌مدیریت ساخته شده تا تیم فروش و محتوا بدون تغییر کد، ویترین را به‌روز نگه دارند.",
+      "FumGPT ویترین فارسی ابزارهای هوش مصنوعی است؛ با خرید شفاف، پشتیبانی انسانی و مسیر سفارش قابل پیگیری.",
     copyright: `© ${new Date().getFullYear()} ${fallbackBrandName}. همه حقوق محفوظ است.`
   },
-  trustBadges: ["تحویل دیجیتال", "پشتیبانی فارسی", "قیمت‌گذاری شفاف", "مدیریت آسان محتوا"],
+  appearance: {
+    primaryColor: process.env.NEXT_PUBLIC_PRIMARY_COLOR || "#1a73e8",
+    secondaryColor: process.env.NEXT_PUBLIC_SECONDARY_COLOR || "#8c6bff",
+    fontFamily: "\"Vazirmatn\", \"Inter\", system-ui, sans-serif"
+  },
+  trustBadges: ["تحویل دیجیتال", "پشتیبانی فارسی", "قیمت‌گذاری شفاف", "سفارش قابل پیگیری"],
   navigation: [
     { label: "خانه", href: "/", location: "both", priority: 100 },
     { label: "فروشگاه", href: "/products", location: "both", priority: 90 },

@@ -1,0 +1,31 @@
+{
+  "name": "web",
+  "private": true,
+  "scripts": {
+    "postinstall": "prisma generate",
+    "dev": "next dev --webpack",
+    "dev:turbo": "next dev --turbo",
+    "build": "next build",
+    "start": "node .next/standalone/apps/web/server.js",
+    "lint": "next lint",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "node prisma/seed.mjs",
+    "db:studio": "prisma studio"
+  },
+  "dependencies": {
+    "@prisma/client": "6.19.3",
+    "next": "16.2.4",
+    "react": "19.2.5",
+    "react-dom": "19.2.5",
+    "resend": "^6.12.2"
+  },
+  "devDependencies": {
+    "@types/node": "25.6.0",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "prisma": "6.19.3",
+    "typescript": "6.0.3"
+  }
+}

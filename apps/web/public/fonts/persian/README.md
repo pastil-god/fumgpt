@@ -1,15 +1,11 @@
-These files were copied from locally installed Windows fonts on this machine.
-
-Bundled files:
+Legacy Persian font files live here:
 
 - `nazanin-regular.ttf`
 - `nazanin-bold.ttf`
 - `lotus-regular.ttf`
 - `lotus-bold.ttf`
 
-Current active setup:
+They are no longer part of the active UI font stack.
 
-- `Nazanin Local` is the primary UI font in `apps/web/app/globals.css`.
-- `Lotus Local` is included as a secondary available family.
-
-This project does not download fonts from a CDN or third-party font service.
+The production UI uses `Vazirmatn` from `@fontsource/vazirmatn` and `Inter` from `@fontsource/inter`, imported in `apps/web/app/layout.tsx`.
+Fonts are bundled and served by the app build, with no external runtime font CDN.

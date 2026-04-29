@@ -1,0 +1,19 @@
+[
+  {
+    "title": "نام محصول",
+    "slug": "product-slug",
+    "category": "accounts",
+    "price": 1000000,
+    "currency": "IRR",
+    "delivery": "تحویل دستی / آنی / بعد از تأیید",
+    "shortDescription": "توضیح کوتاه محصول",
+    "description": "توضیح کامل‌تر محصول برای صفحه جزئیات",
+    "features": [
+      "ویژگی 1",
+      "ویژگی 2",
+      "ویژگی 3"
+    ],
+    "badge": "برچسب",
+    "coverLabel": "عنوان کوتاه کاور"
+  }
+]

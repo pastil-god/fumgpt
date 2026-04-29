@@ -1,0 +1,10 @@
+
+> web@ dev C:\Users\ASUS\.fumpgpt\apps\web
+> next dev --webpack
+
+▲ Next.js 16.2.4 (webpack)
+- Local:         http://localhost:3000
+- Network:       http://172.22.44.156:3000
+- Environments: .env
+✓ Ready in 1017ms
+

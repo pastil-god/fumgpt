@@ -1,27 +1,31 @@
 import Image from "next/image";
 import Link from "next/link";
+import { EditableAction, EditableText, InlineActionPreview } from "@/components/admin/homepage-inline-editor";
 import { formatPersianDate } from "@/lib/content";
 import type { HomePageContent } from "@/lib/mock-homepage";
 import type { NewsArticle } from "@/lib/mock-news";
+import { getHomepageFieldStyleCss, type HomepageFieldStyles } from "@/lib/settings/inline-homepage";
 
 type Props = {
   articles?: NewsArticle[];
   content?: HomePageContent["newsSection"];
+  canInlineEdit?: boolean;
+  fieldStyles?: HomepageFieldStyles;
 };
 
-export function NewsSection({ articles, content }: Props) {
+export function NewsSection({ articles, content, canInlineEdit = false, fieldStyles = {} }: Props) {
   const resolvedContent = content || {
     isVisible: true,
     eyebrow: "اخبار",
     title: "آخرین خبرها و مقاله‌های فروشگاه",
     description:
-      "به‌روزرسانی محصولات، خبرهای جدید و اطلاعیه‌های مهم فروشگاه از طریق CMS منتشر می‌شوند و همین‌جا در دسترس کاربران قرار می‌گیرند.",
+      "راهنماها، خبرها و نکته‌های کاربردی کمک می‌کنند ابزار مناسب را آگاهانه‌تر انتخاب کنی.",
     ctaLabel: "مشاهده همه خبرها",
     ctaHref: "/news",
     adminCalloutLabel: "مدیریت محتوا",
-    adminCalloutTitle: "خبرها، بنرها و محتوای اصلی فروشگاه را بدون کدنویسی به‌روزرسانی کن",
+    adminCalloutTitle: "محتوای آموزشی و خبرهای مهم را سریع‌تر منتشر کن",
     adminCalloutDescription:
-      "این بخش به Contentful متصل می‌شود تا مدیر محتوا بتواند خبر، تصویر، ویدئو و متن را از داشبورد ویرایش کند."
+      "این بخش برای انتشار اطلاعیه‌ها، راهنماها و آموزش‌های کوتاه فروشگاه آماده شده است."
   };
   const safeArticles = articles || [];
 
@@ -31,20 +35,51 @@ export function NewsSection({ articles, content }: Props) {
         <div className="container section-stack">
           <div className="section-header">
             <div>
-              <div className="eyebrow">{resolvedContent.eyebrow}</div>
-              <h2 className="section-title">{resolvedContent.title}</h2>
-              <p className="muted section-text">{resolvedContent.description}</p>
+              {canInlineEdit ? (
+                <EditableText field="newsEyebrow" as="div" className="eyebrow" label="Eyebrow اخبار" />
+              ) : (
+                <div className="eyebrow">{resolvedContent.eyebrow}</div>
+              )}
+              {canInlineEdit ? (
+                <>
+                  <h2 className="section-title">
+                    <EditableText field="newsTitle" as="span" label="عنوان بخش اخبار" />
+                  </h2>
+                  <EditableText
+                    field="newsDescription"
+                    as="p"
+                    className="muted section-text"
+                    label="توضیح بخش اخبار"
+                    multiline
+                  />
+                </>
+              ) : (
+                <>
+                  <h2 className="section-title" style={getHomepageFieldStyleCss(fieldStyles.newsTitle)}>
+                    {resolvedContent.title}
+                  </h2>
+                  <p className="muted section-text">{resolvedContent.description}</p>
+                </>
+              )}
             </div>
           </div>
 
           <div className="surface empty-state-card">
             <strong>هنوز خبری منتشر نشده است</strong>
             <p className="muted">
-              بعد از اتصال CMS یا انتشار اولین خبر، این بخش به‌صورت خودکار تازه‌ترین محتوا را نمایش می‌دهد.
+              بعد از انتشار اولین خبر یا راهنما، تازه‌ترین محتوا در همین بخش نمایش داده می‌شود.
             </p>
-            <Link href={resolvedContent.ctaHref} className="btn btn-secondary">
-              {resolvedContent.ctaLabel}
-            </Link>
+            {canInlineEdit ? (
+              <InlineActionPreview
+                className="btn btn-secondary"
+                labelField="newsCtaLabel"
+                hrefField="newsCtaHref"
+              />
+            ) : (
+              <Link href={resolvedContent.ctaHref} className="btn btn-secondary">
+                {resolvedContent.ctaLabel}
+              </Link>
+            )}
           </div>
         </div>
       </section>
@@ -58,13 +93,46 @@ export function NewsSection({ articles, content }: Props) {
       <div className="container section-stack">
         <div className="section-header">
           <div>
-            <div className="eyebrow">{resolvedContent.eyebrow}</div>
-            <h2 className="section-title">{resolvedContent.title}</h2>
-            <p className="muted section-text">{resolvedContent.description}</p>
+            {canInlineEdit ? (
+              <EditableText field="newsEyebrow" as="div" className="eyebrow" label="Eyebrow اخبار" />
+            ) : (
+              <div className="eyebrow">{resolvedContent.eyebrow}</div>
+            )}
+            {canInlineEdit ? (
+              <>
+                <h2 className="section-title">
+                  <EditableText field="newsTitle" as="span" label="عنوان بخش اخبار" />
+                </h2>
+                <EditableText
+                  field="newsDescription"
+                  as="p"
+                  className="muted section-text"
+                  label="توضیح بخش اخبار"
+                  multiline
+                />
+              </>
+            ) : (
+              <>
+                <h2 className="section-title" style={getHomepageFieldStyleCss(fieldStyles.newsTitle)}>
+                  {resolvedContent.title}
+                </h2>
+                <p className="muted section-text">{resolvedContent.description}</p>
+              </>
+            )}
           </div>
-          <Link href={resolvedContent.ctaHref} className="btn btn-secondary">
-            {resolvedContent.ctaLabel}
-          </Link>
+          {canInlineEdit ? (
+            <EditableAction
+              className="btn btn-secondary"
+              labelField="newsCtaLabel"
+              hrefField="newsCtaHref"
+              label="CTA اخبار"
+              hrefLabel="لینک CTA اخبار"
+            />
+          ) : (
+            <Link href={resolvedContent.ctaHref} className="btn btn-secondary">
+              {resolvedContent.ctaLabel}
+            </Link>
+          )}
         </div>
 
         <div className="news-grid">
@@ -132,9 +200,17 @@ export function NewsSection({ articles, content }: Props) {
             <strong>{resolvedContent.adminCalloutTitle}</strong>
           </div>
           <p>{resolvedContent.adminCalloutDescription}</p>
-          <Link href={resolvedContent.ctaHref} className="btn btn-secondary">
-            {resolvedContent.ctaLabel}
-          </Link>
+          {canInlineEdit ? (
+            <InlineActionPreview
+              className="btn btn-secondary"
+              labelField="newsCtaLabel"
+              hrefField="newsCtaHref"
+            />
+          ) : (
+            <Link href={resolvedContent.ctaHref} className="btn btn-secondary">
+              {resolvedContent.ctaLabel}
+            </Link>
+          )}
         </div>
       </div>
     </section>

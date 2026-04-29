@@ -271,3 +271,96 @@ model SupportRequest {
   @@index([userId, status])
   @@map("support_requests")
 }
+
+model SiteSetting {
+  id                    String   @id
+  siteTitle             String?
+  tagline               String?
+  metaDescription       String?
+  logoUrl               String?
+  faviconUrl            String?
+  primaryColor          String?
+  secondaryColor        String?
+  fontFamily            String?
+  footerText            String?
+  contactPhone          String?
+  contactEmail          String?
+  contactAddress        String?
+  supportCtaLabel       String?
+  supportCtaHref        String?
+  telegramUrl           String?
+  instagramUrl          String?
+  whatsappUrl           String?
+  defaultSeoTitle       String?
+  defaultSeoDescription String?
+  updatedById           String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@map("site_settings")
+}
+
+model HomepageSetting {
+  id                         String   @id
+  heroEyebrow                String?
+  heroStatusLabel            String?
+  heroTitleLead              String?
+  heroTitleHighlight         String?
+  heroTitleTail              String?
+  heroDescription            String?
+  heroPrimaryCtaLabel        String?
+  heroPrimaryCtaHref         String?
+  heroSecondaryCtaLabel      String?
+  heroSecondaryCtaHref       String?
+  heroProofTitle             String?
+  heroProofText              String?
+  heroQuickStartTitle        String?
+  heroQuickStartText         String?
+  heroMarketLabel            String?
+  heroMarketTitle            String?
+  heroMarketDescription      String?
+  heroMarketBadge            String?
+  showCategorySection        Boolean  @default(true)
+  categoriesEyebrow          String?
+  categoriesTitle            String?
+  categoriesDescription      String?
+  categoriesCtaLabel         String?
+  categoriesCtaHref          String?
+  showFeaturedSection        Boolean  @default(true)
+  featuredEyebrow            String?
+  featuredTitle              String?
+  featuredDescription        String?
+  featuredCtaLabel           String?
+  featuredCtaHref            String?
+  showNewsSection            Boolean  @default(true)
+  newsEyebrow                String?
+  newsTitle                  String?
+  newsDescription            String?
+  newsCtaLabel               String?
+  newsCtaHref                String?
+  showTrustSection           Boolean  @default(true)
+  trustEyebrow               String?
+  trustTitle                 String?
+  trustPoints                String?
+  showRoadmapSection         Boolean  @default(true)
+  roadmapEyebrow             String?
+  roadmapTitle               String?
+  roadmapPhase1Title         String?
+  roadmapPhase1Description   String?
+  roadmapPhase2Title         String?
+  roadmapPhase2Description   String?
+  roadmapPhase3Title         String?
+  roadmapPhase3Description   String?
+  showAnnouncement           Boolean  @default(true)
+  announcementLabel          String?
+  announcementTitle          String?
+  announcementDescription    String?
+  announcementCtaLabel       String?
+  announcementCtaHref        String?
+  homepageFieldStyles        Json?
+  updatedById                String?
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  @@map("homepage_settings")
+}

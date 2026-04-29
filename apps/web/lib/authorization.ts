@@ -19,6 +19,9 @@ export const ORDER_ADMIN_VIEWER_ROLES = [
 export const ORDER_ADMIN_EDITOR_ROLES = ["super_admin", "order_operator"] as const;
 export const SUPPORT_LOOKUP_ROLES = ["super_admin", "support_operator"] as const;
 export const CMS_ACCESS_ROLES = ["super_admin", "content_manager", "editor"] as const;
+export const SITE_SETTINGS_ROLES = ["super_admin"] as const;
+export const HOMEPAGE_SETTINGS_ROLES = ["super_admin"] as const;
+export const ROLE_MANAGEMENT_ROLES = ["super_admin"] as const;
 
 export type OperationalRole = (typeof OPERATIONAL_ROLES)[number];
 
@@ -40,13 +43,13 @@ export const ROLE_ACCESS_MATRIX: Array<{
   {
     role: "super_admin",
     label: ROLE_LABELS.super_admin,
-    summary: "دسترسی کامل به ابزارهای داخلی عملیاتی و مسیر CMS",
-    access: ["داشبورد داخلی", "سفارش‌ها", "تغییر وضعیت سفارش", "جست‌وجوی کاربر", "ورود به Contentful"]
+    summary: "دسترسی کامل به تنظیمات سایت، محتوا، سفارش‌ها و عملیات داخلی",
+    access: ["داشبورد داخلی", "تنظیمات سایت", "مدیریت صفحه اصلی", "سفارش‌ها", "تغییر نقش کاربران", "ورود به Contentful"]
   },
   {
     role: "content_manager",
     label: ROLE_LABELS.content_manager,
-    summary: "فقط برای مدیریت محتوا و هماهنگی CMS",
+    summary: "هماهنگی محتوایی و مدیریت محتوا از طریق CMS",
     access: ["داشبورد داخلی", "ورود به Contentful"]
   },
   {
@@ -64,7 +67,7 @@ export const ROLE_ACCESS_MATRIX: Array<{
   {
     role: "editor",
     label: ROLE_LABELS.editor,
-    summary: "دسترسی سبک برای هماهنگی و ورود به CMS",
+    summary: "ویرایش محتوا از طریق CMS بدون دسترسی به تنظیمات حساس",
     access: ["داشبورد داخلی", "ورود به Contentful"]
   },
   {
@@ -79,8 +82,20 @@ export const ADMIN_SECTIONS = [
   {
     href: "/admin",
     label: "نمای کلی",
-    description: "ورود به ابزارهای داخلی و مرزبندی نقش‌ها",
+    description: "وضعیت کلی، نقش فعلی و مسیرهای مدیریتی",
     roles: OPERATIONAL_ROLES
+  },
+  {
+    href: "/admin/settings",
+    label: "تنظیمات سایت",
+    description: "برند، SEO، رنگ‌ها، تماس و فوتر",
+    roles: SITE_SETTINGS_ROLES
+  },
+  {
+    href: "/admin/homepage",
+    label: "صفحه اصلی",
+    description: "Hero، CTAها، سکشن‌ها و متن‌های اصلی",
+    roles: HOMEPAGE_SETTINGS_ROLES
   },
   {
     href: "/admin/orders",
@@ -90,8 +105,8 @@ export const ADMIN_SECTIONS = [
   },
   {
     href: "/admin/users",
-    label: "جست‌وجوی کاربران",
-    description: "یافتن کاربر برای پشتیبانی و بررسی سابقه پایه",
+    label: "کاربران و نقش‌ها",
+    description: "جست‌وجوی کاربر، پشتیبانی و مدیریت نقش‌ها",
     roles: SUPPORT_LOOKUP_ROLES
   }
 ] as const;
@@ -121,6 +136,18 @@ export function canUpdateOrderStatus(role: AppRole | null | undefined) {
 
 export function canLookupUsers(role: AppRole | null | undefined) {
   return hasRequiredRole(role, SUPPORT_LOOKUP_ROLES);
+}
+
+export function canManageSiteSettings(role: AppRole | null | undefined) {
+  return hasRequiredRole(role, SITE_SETTINGS_ROLES);
+}
+
+export function canManageHomepageSettings(role: AppRole | null | undefined) {
+  return hasRequiredRole(role, HOMEPAGE_SETTINGS_ROLES);
+}
+
+export function canManageRoles(role: AppRole | null | undefined) {
+  return hasRequiredRole(role, ROLE_MANAGEMENT_ROLES);
 }
 
 export function getAdminSectionsForRole(role: AppRole) {

@@ -1,22 +1,26 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import {
+  canManageRoles,
   requireAuthorizedSession,
   ROLE_LABELS,
   SUPPORT_LOOKUP_ROLES
 } from "@/lib/authorization";
+import { APP_ROLES } from "@/lib/auth";
 import { getOrderStatusMeta } from "@/lib/checkout";
 import { dbUsers } from "@/lib/db";
 import { formatPersianDate } from "@/lib/content";
 import { formatPriceIRR } from "@/lib/mock-data";
 
 export const metadata: Metadata = {
-  title: "جست‌وجوی کاربران"
+  title: "کاربران و نقش‌ها"
 };
 
 type SearchParamsLike =
   | Promise<{
       q?: string | string[];
+      error?: string | string[];
+      roleUpdated?: string | string[];
     }>
   | undefined;
 
@@ -24,8 +28,27 @@ async function resolveSearchParams(searchParams: SearchParamsLike) {
   const params = (await searchParams) || {};
 
   return {
-    query: Array.isArray(params.q) ? params.q[0] : params.q || ""
+    query: Array.isArray(params.q) ? params.q[0] : params.q || "",
+    error: Array.isArray(params.error) ? params.error[0] : params.error,
+    roleUpdated: Array.isArray(params.roleUpdated) ? params.roleUpdated[0] : params.roleUpdated
   };
+}
+
+function getRoleUpdateMessage(error?: string) {
+  switch (error) {
+    case "role-denied":
+      return "این حساب اجازه تغییر نقش ندارد.";
+    case "invalid-role":
+      return "نقش انتخاب‌شده معتبر نیست.";
+    case "user-not-found":
+      return "کاربر پیدا نشد.";
+    case "cannot-downgrade-self":
+      return "برای امنیت، نمی‌توانی نقش super admin خودت را از همین فرم کم کنی.";
+    case "last-super-admin":
+      return "حداقل یک super admin باید در سیستم باقی بماند.";
+    default:
+      return null;
+  }
 }
 
 export default async function AdminUsersPage({
@@ -33,24 +56,44 @@ export default async function AdminUsersPage({
 }: {
   searchParams?: SearchParamsLike;
 }) {
-  await requireAuthorizedSession({
+  const session = await requireAuthorizedSession({
     allowedRoles: SUPPORT_LOOKUP_ROLES,
     nextPath: "/admin/users"
   });
   const params = await resolveSearchParams(searchParams);
-  const users = params.query ? await dbUsers.searchForAdminLookup(params.query) : [];
+  const canEditRoles = canManageRoles(session.role);
+  const users = params.query
+    ? await dbUsers.searchForAdminLookup(params.query)
+    : canEditRoles
+      ? await dbUsers.listForAdmin(50)
+      : [];
+  const roleError = getRoleUpdateMessage(params.error);
 
   return (
-    <div className="surface nested-card">
+    <div className="surface nested-card admin-users-panel">
       <div className="section-header">
         <div>
-          <div className="eyebrow">پشتیبانی داخلی</div>
-          <h2 className="section-title">جست‌وجوی کاربران</h2>
+          <div className="eyebrow">پشتیبانی و کنترل دسترسی</div>
+          <h2 className="section-title">کاربران و نقش‌ها</h2>
           <p className="muted section-text">
-            برای پشتیبانی پایه، با ایمیل، شماره تماس یا نام نمایشی کاربر را پیدا کنید.
+            کاربر را با ایمیل، شماره تماس یا نام نمایشی پیدا کن. super admin می‌تواند نقش‌ها را با ثبت audit تغییر دهد.
           </p>
         </div>
       </div>
+
+      {params.roleUpdated ? (
+        <div className="status-banner success">
+          <strong>نقش کاربر به‌روزرسانی شد</strong>
+          <p>برای اعمال دسترسی جدید، کاربر بهتر است یک بار logout/login کند.</p>
+        </div>
+      ) : null}
+
+      {roleError ? (
+        <div className="status-banner danger">
+          <strong>تغییر نقش انجام نشد</strong>
+          <p>{roleError}</p>
+        </div>
+      ) : null}
 
       <form className="admin-filter-form" method="get">
         <label className="checkout-field">
@@ -73,10 +116,10 @@ export default async function AdminUsersPage({
         </div>
       </form>
 
-      {!params.query ? (
+      {!params.query && !canEditRoles ? (
         <div className="admin-empty-state">
           <strong>جست‌وجو را شروع کنید</strong>
-          <p className="muted">برای حفظ سادگی و سرعت، این صفحه فقط وقتی جست‌وجو انجام شود داده‌ها را نشان می‌دهد.</p>
+          <p className="muted">برای حفظ امنیت، فهرست همه کاربران نمایش داده نمی‌شود. ابتدا عبارت جست‌وجو وارد کن.</p>
         </div>
       ) : users.length === 0 ? (
         <div className="admin-empty-state">
@@ -86,7 +129,7 @@ export default async function AdminUsersPage({
       ) : (
         <div className="admin-role-list">
           {users.map((user) => (
-            <div key={user.id} className="admin-user-card">
+            <div key={user.id} className="admin-user-card admin-user-card-premium">
               <div className="section-header">
                 <div>
                   <strong>{user.profile?.displayName || user.email || user.phone || user.id}</strong>
@@ -111,6 +154,31 @@ export default async function AdminUsersPage({
                   <p className="muted">{user._count.supportRequests.toLocaleString("fa-IR")}</p>
                 </div>
               </div>
+
+              {canEditRoles && user.id === session.userId && user.role === "super_admin" ? (
+                <div className="status-banner status-banner-warning">
+                  <strong>برای جلوگیری از قفل شدن حساب، نقش خودت از این فرم قابل کاهش نیست</strong>
+                  <p>برای تغییر نقش مدیر کل فعلی، ابتدا مطمئن شو حداقل یک super admin دیگر فعال در سیستم وجود دارد.</p>
+                </div>
+              ) : canEditRoles ? (
+                <form className="admin-role-update-form" action="/api/admin/users/role" method="post">
+                  <input type="hidden" name="userId" value={user.id} />
+                  <input type="hidden" name="redirectTo" value={`/admin/users?q=${encodeURIComponent(params.query)}`} />
+                  <label className="checkout-field">
+                    <span>نقش کاربر</span>
+                    <select name="role" defaultValue={user.role}>
+                      {APP_ROLES.map((role) => (
+                        <option key={role} value={role}>
+                          {ROLE_LABELS[role]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button className="btn btn-secondary" type="submit">
+                    ذخیره نقش
+                  </button>
+                </form>
+              ) : null}
 
               {user.orders.length > 0 ? (
                 <div className="admin-mini-list">

@@ -1,14 +1,20 @@
-This folder now contains self-hosted Persian fonts copied from fonts already installed on this local Windows machine.
+The active UI font setup is package-based and self-hosted through the app build.
 
-Current setup:
+Current active stack:
 
-- Active UI stack is defined in `apps/web/app/globals.css`.
-- `Nazanin Local` is the primary UI font.
-- `Lotus Local` is bundled as a secondary available Persian font.
-- Dana is still not bundled in this repository.
+- Persian / Arabic / RTL UI: `Vazirmatn`
+- English / Latin fallback: `Inter`
+- CSS stack: `"Vazirmatn", "Inter", system-ui, sans-serif`
 
-Notes:
+Source:
 
-- The copied files are TrueType (`.ttf`) assets from the local Windows font directory.
-- `font-display: swap` is enabled for the active `@font-face` rules.
-- Fallbacks remain in place for environments where these files are removed later.
+- `@fontsource/vazirmatn`
+- `@fontsource/inter`
+
+Only weights 400, 500, 600, and 700 are imported in `apps/web/app/layout.tsx`.
+No Google Fonts CDN or external runtime font CDN is used.
+
+Legacy note:
+
+- The old Lotus, Nazanin, and Dana folders are not required for the active UI.
+- The old local `.ttf` files remain in this folder for now, but they are no longer referenced by `globals.css`.
