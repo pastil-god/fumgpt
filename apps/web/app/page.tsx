@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import type { CSSProperties } from "react";
 import { Hero } from "@/components/hero";
 import { NewsSection } from "@/components/news-section";
 import { AnalyticsPageView } from "@/components/analytics-page-view";
@@ -25,10 +26,12 @@ import {
 import { getSession } from "@/lib/auth";
 import { buildPublicMetadata } from "@/lib/seo";
 import { isExternalHref } from "@/lib/site";
-import { getHomepageStyleSettings } from "@/lib/settings/admin-settings";
+import { getHomepageLayoutSettings, getHomepageStyleSettings } from "@/lib/settings/admin-settings";
 import {
+  buildInlineThemeStyleCss,
   getHomepageFieldStyleCss,
-  getInlineFontFamilyFallback,
+  getHomepageLayoutClassNames,
+  getHomepageLayoutStyleCss,
   type HomepageFieldStyles,
   type InlineHomepageTextField,
   type InlineHomepageValues,
@@ -86,6 +89,7 @@ function buildInlineHomepageValues(content: Awaited<ReturnType<typeof getHomePag
     heroMarketTitle: content.hero.marketTitle,
     heroMarketDescription: content.hero.marketDescription,
     heroMarketBadge: content.hero.marketBadge,
+    heroImageUrl: content.hero.imageUrl || "",
     categoriesEyebrow: content.categorySection.eyebrow,
     categoriesTitle: content.categorySection.title,
     categoriesDescription: content.categorySection.description,
@@ -127,11 +131,7 @@ function buildInlineHomepageValues(content: Awaited<ReturnType<typeof getHomePag
 }
 
 function buildInlineThemeValues(settings: Awaited<ReturnType<typeof getStorefrontSettings>>): InlineThemeValues {
-  return {
-    primaryColor: settings.appearance.primaryColor,
-    secondaryColor: settings.appearance.secondaryColor,
-    fontFamily: getInlineFontFamilyFallback(settings.appearance.fontFamily)
-  };
+  return { ...settings.appearance };
 }
 
 function getFieldStyle(fieldStyles: HomepageFieldStyles, field: InlineHomepageTextField) {
@@ -147,7 +147,8 @@ export default async function HomePage() {
     homePageContent,
     storefrontSettings,
     session,
-    homepageFieldStyles
+    homepageFieldStyles,
+    homepageLayoutSettings
   ] =
     await Promise.all([
       getFeaturedStoreProducts(),
@@ -157,7 +158,8 @@ export default async function HomePage() {
       getHomePageContent(),
       getStorefrontSettings(),
       getSession(),
-      getHomepageStyleSettings()
+      getHomepageStyleSettings(),
+      getHomepageLayoutSettings()
     ]);
   const canInlineEdit = session?.role === "super_admin";
 
@@ -444,7 +446,17 @@ export default async function HomePage() {
   );
 
   const homepage = (
-    <div className="homepage-shell">
+    <div
+      className={`homepage-shell${canInlineEdit ? "" : ` ${getHomepageLayoutClassNames(homepageLayoutSettings)}`}`}
+      style={
+        canInlineEdit
+          ? undefined
+          : {
+              ...buildInlineThemeStyleCss(storefrontSettings.appearance),
+              ...getHomepageLayoutStyleCss(homepageLayoutSettings)
+            } as CSSProperties
+      }
+    >
       <AnalyticsPageView
         name="homepage_view"
         route="/"
@@ -515,6 +527,7 @@ export default async function HomePage() {
       initialHomepage={buildInlineHomepageValues(homePageContent)}
       initialTheme={buildInlineThemeValues(storefrontSettings)}
       initialFieldStyles={homepageFieldStyles}
+      initialLayoutSettings={homepageLayoutSettings}
     >
       {homepage}
     </HomepageInlineEditor>

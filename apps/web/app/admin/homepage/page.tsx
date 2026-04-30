@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { CloudinaryImageField } from "@/components/admin/cloudinary-image-field";
 import { requireAuthorizedSession } from "@/lib/authorization";
 import { recordAuditEvent } from "@/lib/observability/audit";
 import {
@@ -152,6 +153,15 @@ export default async function AdminHomepagePage({
             <Field name="heroMarketTitle" label="عنوان کارت سمت راست" defaultValue={defaults.hero.marketTitle} />
             <Area name="heroMarketDescription" label="توضیح کارت سمت راست" defaultValue={defaults.hero.marketDescription} rows={3} />
             <Field name="heroMarketBadge" label="Badge کارت سمت راست" defaultValue={defaults.hero.marketBadge} />
+            <CloudinaryImageField
+              name="heroImageUrl"
+              label="تصویر Hero"
+              defaultValue={defaults.hero.imageUrl || ""}
+              placeholder="https://res.cloudinary.com/..."
+              usage="homepage"
+              className="admin-settings-field-wide"
+              previewAlt="تصویر Hero صفحه اصلی"
+            />
           </div>
         </div>
 

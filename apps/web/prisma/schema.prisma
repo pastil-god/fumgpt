@@ -282,6 +282,13 @@ model SiteSetting {
   primaryColor          String?
   secondaryColor        String?
   fontFamily            String?
+  backgroundTint        String?
+  headingFontFamily     String?
+  buttonRadius          String?
+  cardRadius            String?
+  cardShadow            String?
+  sectionDensity        String?
+  buttonStyle           String?
   footerText            String?
   contactPhone          String?
   contactEmail          String?
@@ -320,6 +327,7 @@ model HomepageSetting {
   heroMarketTitle            String?
   heroMarketDescription      String?
   heroMarketBadge            String?
+  heroImageUrl               String?
   showCategorySection        Boolean  @default(true)
   categoriesEyebrow          String?
   categoriesTitle            String?
@@ -363,4 +371,51 @@ model HomepageSetting {
   updatedAt                  DateTime @updatedAt
 
   @@map("homepage_settings")
+}
+
+model PageSetting {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String?
+  description String?
+  fieldStyles Json?
+  content     Json?
+  updatedById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("page_settings")
+}
+
+model StoreProduct {
+  id                 String   @id @default(cuid())
+  slug               String   @unique
+  title              String
+  shortDescription   String
+  description        String?
+  priceAmount        Int?
+  comparePriceAmount Int?
+  priceLabel         String?
+  currency           String   @default("IRR")
+  badge              String?
+  category           String?
+  imageUrl           String?
+  ctaText            String?
+  ctaHref            String?
+  features           Json?
+  isActive           Boolean  @default(true)
+  isFeatured         Boolean  @default(false)
+  sortOrder          Int      @default(0)
+  seoTitle           String?
+  seoDescription     String?
+  source             String   @default("internal")
+  createdById        String?
+  updatedById        String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([isActive, isFeatured, sortOrder])
+  @@index([category])
+  @@index([updatedAt])
+  @@map("store_products")
 }

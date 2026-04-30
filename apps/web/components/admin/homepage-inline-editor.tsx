@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -14,19 +15,35 @@ import {
   type ChangeEvent,
   type ReactNode
 } from "react";
+import { FontPicker } from "@/components/admin/font-picker";
+import { CloudinaryImageField } from "@/components/admin/cloudinary-image-field";
 import {
+  DEFAULT_HOMEPAGE_LAYOUT_SETTINGS,
+  DEFAULT_INLINE_THEME_VALUES,
   HOMEPAGE_FONT_REGISTRY,
-  INLINE_FONT_OPTIONS,
+  HOMEPAGE_LAYOUT_PRESETS,
+  INLINE_THEME_BUTTON_RADIUS_OPTIONS,
+  INLINE_THEME_BUTTON_STYLE_OPTIONS,
+  INLINE_THEME_CARD_RADIUS_OPTIONS,
+  INLINE_THEME_CARD_SHADOW_OPTIONS,
+  INLINE_THEME_COLOR_PRESETS,
+  INLINE_THEME_DENSITY_OPTIONS,
+  buildInlineThemeStyleCss,
+  getHomepageLayoutClassNames,
   getHomepageFieldStyleCss,
+  getHomepageLayoutStyleCss,
   getHomepageFontOption,
-  getInlineFontFamilyFallback,
   hasHomepageFieldStyle,
   isHexColor,
+  normalizeInlineThemeValues,
   isSafeHomepageFontWeight,
   splitTrustPoints,
   type HomepageFieldStyle,
   type HomepageFieldStyles,
+  type HomepageLayoutDensity,
+  type HomepageLayoutSettings,
   type InlineHomepageHrefField,
+  type InlineHomepageImageField,
   type InlineHomepageTextField,
   type InlineHomepageValues,
   type InlineHomepageVisibilityField,
@@ -34,7 +51,7 @@ import {
 } from "@/lib/settings/inline-homepage";
 
 type EditableElement = "span" | "p" | "strong" | "small" | "h2" | "div";
-type InlineEditorPanel = "theme" | "sections" | null;
+type InlineEditorPanel = "theme" | "sections" | "layout" | null;
 type InlineEditorToast = {
   id: number;
   tone: "success" | "error" | "info";
@@ -50,7 +67,9 @@ type InlineEditorContextValue = {
   errorMessage: string | null;
   homepage: InlineHomepageValues;
   theme: InlineThemeValues;
+  resolvedTheme: InlineThemeValues;
   fieldStyles: HomepageFieldStyles;
+  layoutSettings: HomepageLayoutSettings;
   activeStyleField: InlineHomepageTextField | null;
   startEditing: () => void;
   cancelEditing: () => void;
@@ -63,6 +82,9 @@ type InlineEditorContextValue = {
   ) => void;
   updateHomepageFieldStyle: (field: InlineHomepageTextField, style: HomepageFieldStyle) => void;
   resetHomepageFieldStyle: (field: InlineHomepageTextField) => void;
+  updateLayoutSettings: (next: HomepageLayoutSettings | ((current: HomepageLayoutSettings) => HomepageLayoutSettings)) => void;
+  resetLayoutSettings: () => void;
+  resetThemeToDefaults: () => void;
   updateThemeField: <Field extends keyof InlineThemeValues>(field: Field, value: InlineThemeValues[Field]) => void;
 };
 
@@ -77,8 +99,18 @@ function isExternalHref(href: string) {
 }
 
 function areEditorValuesEqual(
-  left: { homepage: InlineHomepageValues; theme: InlineThemeValues; fieldStyles: HomepageFieldStyles },
-  right: { homepage: InlineHomepageValues; theme: InlineThemeValues; fieldStyles: HomepageFieldStyles }
+  left: {
+    homepage: InlineHomepageValues;
+    theme: InlineThemeValues;
+    fieldStyles: HomepageFieldStyles;
+    layoutSettings: HomepageLayoutSettings;
+  },
+  right: {
+    homepage: InlineHomepageValues;
+    theme: InlineThemeValues;
+    fieldStyles: HomepageFieldStyles;
+    layoutSettings: HomepageLayoutSettings;
+  }
 ) {
   return JSON.stringify(left) === JSON.stringify(right);
 }
@@ -102,29 +134,27 @@ export function HomepageInlineEditor({
   children,
   initialHomepage,
   initialTheme,
-  initialFieldStyles
+  initialFieldStyles,
+  initialLayoutSettings
 }: {
   children: ReactNode;
   initialHomepage: InlineHomepageValues;
   initialTheme: InlineThemeValues;
   initialFieldStyles: HomepageFieldStyles;
+  initialLayoutSettings: HomepageLayoutSettings;
 }) {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [homepage, setHomepage] = useState(initialHomepage);
   const [fieldStyles, setFieldStyles] = useState(initialFieldStyles);
+  const [layoutSettings, setLayoutSettings] = useState(initialLayoutSettings);
   const [activeStyleField, setActiveStyleField] = useState<InlineHomepageTextField | null>(null);
-  const [theme, setTheme] = useState({
-    ...initialTheme,
-    fontFamily: getInlineFontFamilyFallback(initialTheme.fontFamily)
-  });
+  const [theme, setTheme] = useState(initialTheme);
   const [baseline, setBaseline] = useState({
     homepage: initialHomepage,
     fieldStyles: initialFieldStyles,
-    theme: {
-      ...initialTheme,
-      fontFamily: getInlineFontFamilyFallback(initialTheme.fontFamily)
-    }
+    layoutSettings: initialLayoutSettings,
+    theme: initialTheme
   });
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [activePanel, setActivePanel] = useState<InlineEditorPanel>(null);
@@ -132,9 +162,10 @@ export function HomepageInlineEditor({
   const [isPending, startTransition] = useTransition();
   const isSaving = saveState === "saving" || isPending;
   const hasUnsavedChanges = useMemo(
-    () => !areEditorValuesEqual({ homepage, theme, fieldStyles }, baseline),
-    [baseline, fieldStyles, homepage, theme]
+    () => !areEditorValuesEqual({ homepage, theme, fieldStyles, layoutSettings }, baseline),
+    [baseline, fieldStyles, homepage, layoutSettings, theme]
   );
+  const resolvedTheme = useMemo(() => normalizeInlineThemeValues(theme, baseline.theme), [baseline.theme, theme]);
 
   const showToast = useCallback((tone: InlineEditorToast["tone"], message: string) => {
     const id = Date.now();
@@ -146,19 +177,11 @@ export function HomepageInlineEditor({
   }, []);
 
   const previewStyle = useMemo(() => {
-    const primaryColor = isHexColor(theme.primaryColor) ? theme.primaryColor : baseline.theme.primaryColor;
-    const secondaryColor = isHexColor(theme.secondaryColor) ? theme.secondaryColor : baseline.theme.secondaryColor;
-
     return {
-      "--color-accent": primaryColor,
-      "--color-accent-hover": primaryColor,
-      "--accent-purple": secondaryColor,
-      "--primary": primaryColor,
-      "--primary-strong": primaryColor,
-      "--primary-gradient": `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
-      "--font-ui": getInlineFontFamilyFallback(theme.fontFamily)
+      ...buildInlineThemeStyleCss(resolvedTheme),
+      ...getHomepageLayoutStyleCss(layoutSettings)
     } as CSSProperties;
-  }, [baseline.theme.primaryColor, baseline.theme.secondaryColor, theme]);
+  }, [layoutSettings, resolvedTheme]);
 
   const startEditing = useCallback(() => {
     setSaveState("idle");
@@ -174,6 +197,7 @@ export function HomepageInlineEditor({
 
     setHomepage(baseline.homepage);
     setFieldStyles(baseline.fieldStyles);
+    setLayoutSettings(baseline.layoutSettings);
     setTheme(baseline.theme);
     setSaveState("idle");
     setActivePanel(null);
@@ -203,7 +227,8 @@ export function HomepageInlineEditor({
           body: JSON.stringify({
             homepage,
             theme,
-            fieldStyles
+            fieldStyles,
+            layoutSettings
           })
         });
 
@@ -213,7 +238,7 @@ export function HomepageInlineEditor({
           return;
         }
 
-        setBaseline({ homepage, theme, fieldStyles });
+        setBaseline({ homepage, theme, fieldStyles, layoutSettings });
         setSaveState("saved");
         setActivePanel(null);
         setActiveStyleField(null);
@@ -225,7 +250,7 @@ export function HomepageInlineEditor({
         showToast("error", "ارتباط با سرور برقرار نشد. دوباره تلاش کن.");
       });
     });
-  }, [fieldStyles, hasUnsavedChanges, homepage, isEditing, isSaving, router, showToast, theme]);
+  }, [fieldStyles, hasUnsavedChanges, homepage, isEditing, isSaving, layoutSettings, router, showToast, theme]);
 
   useEffect(() => {
     if (!isEditing || !hasUnsavedChanges) {
@@ -267,7 +292,9 @@ export function HomepageInlineEditor({
       errorMessage: saveState === "error" ? "ذخیره انجام نشد. مقدار لینک، رنگ یا فونت را بررسی کن." : null,
       homepage,
       theme,
+      resolvedTheme,
       fieldStyles,
+      layoutSettings,
       activeStyleField,
       startEditing,
       cancelEditing,
@@ -313,6 +340,18 @@ export function HomepageInlineEditor({
         });
         setSaveState("idle");
       },
+      updateLayoutSettings(next) {
+        setLayoutSettings((current) => (typeof next === "function" ? next(current) : next));
+        setSaveState("idle");
+      },
+      resetLayoutSettings() {
+        setLayoutSettings(DEFAULT_HOMEPAGE_LAYOUT_SETTINGS);
+        setSaveState("idle");
+      },
+      resetThemeToDefaults() {
+        setTheme({ ...DEFAULT_INLINE_THEME_VALUES });
+        setSaveState("idle");
+      },
       updateThemeField(field, nextValue) {
         setTheme((current) => ({
           ...current,
@@ -330,6 +369,8 @@ export function HomepageInlineEditor({
       homepage,
       isEditing,
       isSaving,
+      layoutSettings,
+      resolvedTheme,
       saveChanges,
       saveState,
       startEditing,
@@ -339,10 +380,14 @@ export function HomepageInlineEditor({
 
   return (
     <InlineEditorContext.Provider value={value}>
-      <div className={cx("inline-editor-root", isEditing && "is-editing")} style={previewStyle}>
+      <div
+        className={cx("inline-editor-root", getHomepageLayoutClassNames(layoutSettings), isEditing && "is-editing")}
+        style={previewStyle}
+      >
         {children}
         <EditModeToolbar />
         <ThemeQuickPanel />
+        <LayoutQuickPanel />
         <SectionsQuickPanel />
         <FieldStylePanel />
         <InlineEditorToasts toasts={toasts} />
@@ -405,6 +450,7 @@ export function EditableText({
       onClick={() => editor.selectStyleField(field)}
       onFocus={() => editor.selectStyleField(field)}
     >
+      <span className="inline-edit-badge" aria-hidden="true">ویرایش</span>
       {multiline ? (
         <textarea
           className="inline-editable-control"
@@ -513,6 +559,161 @@ export function InlineActionPreview({
     <Link className={className} href={href} prefetch={false} style={style}>
       {buttonLabel}
     </Link>
+  );
+}
+
+export function EditableImageFrame({
+  field,
+  defaultSrc,
+  alt,
+  width,
+  height,
+  priority = false,
+  sizes,
+  className,
+  imageClassName
+}: {
+  field: InlineHomepageImageField;
+  defaultSrc: string;
+  alt: string;
+  width: number;
+  height: number;
+  priority?: boolean;
+  sizes?: string;
+  className?: string;
+  imageClassName?: string;
+}) {
+  const editor = useInlineEditor();
+  const currentValue = editor.homepage[field]?.trim() || "";
+  const imageSrc = currentValue || defaultSrc;
+  const [isOpen, setIsOpen] = useState(false);
+  const [draftValue, setDraftValue] = useState(imageSrc);
+  const hasCustomImage = Boolean(currentValue);
+
+  function openEditor() {
+    setDraftValue(currentValue || defaultSrc);
+    setIsOpen(true);
+  }
+
+  function closeEditor() {
+    setDraftValue(imageSrc);
+    setIsOpen(false);
+  }
+
+  function saveImage() {
+    const nextValue = draftValue.trim();
+    editor.updateHomepageField(field, nextValue === defaultSrc ? "" : nextValue);
+    setIsOpen(false);
+  }
+
+  function resetImage() {
+    setDraftValue(defaultSrc);
+    editor.updateHomepageField(field, "");
+    setIsOpen(false);
+  }
+
+  const image = (
+    <Image
+      src={imageSrc}
+      alt={alt}
+      width={width}
+      height={height}
+      priority={priority}
+      sizes={sizes}
+      className={imageClassName}
+    />
+  );
+
+  if (!editor.isEditing) {
+    return image;
+  }
+
+  return (
+    <>
+      <div
+        className={cx("inline-editable-image", isOpen && "is-selected", className)}
+        role="button"
+        tabIndex={0}
+        aria-label="تغییر تصویر"
+        onClick={openEditor}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            openEditor();
+          }
+        }}
+      >
+        {image}
+        <span className="inline-image-edit-badge">تغییر تصویر</span>
+      </div>
+
+      {isOpen ? (
+        <div className="inline-image-modal-backdrop" role="presentation" onClick={closeEditor}>
+          <section
+            className="inline-image-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="ویرایش تصویر"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="inline-image-modal-header">
+              <div>
+                <span className="eyebrow">ویرایش تصویر</span>
+                <strong>تصویر Hero صفحه اصلی</strong>
+              </div>
+              <button type="button" className="inline-image-close" onClick={closeEditor} aria-label="لغو">
+                ×
+              </button>
+            </div>
+
+            <CloudinaryImageField
+              name={`${field}-draft`}
+              label="آپلود تصویر"
+              value={draftValue}
+              usage="homepage"
+              placeholder="https://res.cloudinary.com/..."
+              previewAlt={alt}
+              onChange={setDraftValue}
+              className="inline-image-cloudinary-field"
+            />
+
+            <label className="inline-image-url-field">
+              <span>وارد کردن لینک تصویر</span>
+              <input
+                dir="ltr"
+                type="url"
+                value={draftValue}
+                placeholder="/illustrations/hero-ai-marketplace.svg"
+                onChange={(event) => setDraftValue(event.target.value)}
+              />
+            </label>
+
+            <div className="inline-image-preview">
+              <span>پیش‌نمایش</span>
+              <div>
+                {draftValue.trim() ? (
+                  <img src={draftValue.trim()} alt={alt} loading="lazy" />
+                ) : (
+                  <small>هنوز تصویری انتخاب نشده است.</small>
+                )}
+              </div>
+            </div>
+
+            <div className="inline-image-modal-actions">
+              <button type="button" className="btn btn-primary" onClick={saveImage}>
+                ذخیره
+              </button>
+              <button type="button" className="btn btn-secondary" onClick={closeEditor}>
+                لغو
+              </button>
+              <button type="button" className="btn btn-ghost" onClick={resetImage} disabled={!hasCustomImage && draftValue === defaultSrc}>
+                بازنشانی
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+    </>
   );
 }
 
@@ -706,29 +907,23 @@ function FieldStylePanel() {
 
       <label className="inline-theme-field">
         <span>فونت عنوان/متن ویژه</span>
-        <select
+        <FontPicker
           value={style.fontKey || ""}
-          onChange={(event) => {
-            const nextFontKey = event.target.value || undefined;
+          placeholder="پیش‌فرض سایت"
+          ariaLabel="انتخاب فونت متن ویژه"
+          onChange={(nextFontKey) => {
             const nextFont = getHomepageFontOption(nextFontKey);
             const currentWeight = style.fontWeight;
 
             updateStyle({
-              fontKey: nextFontKey as HomepageFieldStyle["fontKey"],
+              fontKey: nextFontKey,
               fontWeight:
                 currentWeight && nextFont?.allowedWeights.some((weight) => weight === currentWeight)
                   ? currentWeight
                   : undefined
             });
           }}
-        >
-          <option value="">پیش‌فرض سایت</option>
-          {HOMEPAGE_FONT_REGISTRY.map((font) => (
-            <option key={font.fontKey} value={font.fontKey}>
-              {font.label}
-            </option>
-          ))}
-        </select>
+        />
       </label>
 
       <label className="inline-theme-field">
@@ -812,6 +1007,14 @@ function EditModeToolbar() {
           ظاهر
         </button>
         <button
+          className={cx("btn", editor.activePanel === "layout" ? "btn-primary" : "btn-secondary")}
+          type="button"
+          onClick={() => editor.setActivePanel(editor.activePanel === "layout" ? null : "layout")}
+          aria-pressed={editor.activePanel === "layout"}
+        >
+          چیدمان
+        </button>
+        <button
           className={cx("btn", editor.activePanel === "sections" ? "btn-primary" : "btn-secondary")}
           type="button"
           onClick={() => editor.setActivePanel(editor.activePanel === "sections" ? null : "sections")}
@@ -839,6 +1042,310 @@ function EditModeToolbar() {
   );
 }
 
+function LayoutQuickPanel() {
+  const editor = useInlineEditor();
+
+  if (!editor.isEditing || editor.activePanel !== "layout") {
+    return null;
+  }
+
+  const layout = editor.layoutSettings;
+
+  function setHeroPreset(density: HomepageLayoutDensity) {
+    editor.updateLayoutSettings((current) => ({
+      ...current,
+      hero: { ...HOMEPAGE_LAYOUT_PRESETS.hero[density] }
+    }));
+  }
+
+  function setSectionPreset(density: HomepageLayoutDensity) {
+    editor.updateLayoutSettings((current) => ({
+      ...current,
+      sections: { ...HOMEPAGE_LAYOUT_PRESETS.sections[density] }
+    }));
+  }
+
+  function setProductPreset(density: HomepageLayoutDensity) {
+    editor.updateLayoutSettings((current) => ({
+      ...current,
+      products: { ...HOMEPAGE_LAYOUT_PRESETS.products[density] }
+    }));
+  }
+
+  function setAnnouncementPreset(density: HomepageLayoutDensity) {
+    editor.updateLayoutSettings((current) => ({
+      ...current,
+      announcement: { ...HOMEPAGE_LAYOUT_PRESETS.announcement[density] }
+    }));
+  }
+
+  return (
+    <aside className="inline-theme-panel inline-layout-panel" aria-label="تنظیمات چیدمان صفحه اصلی">
+      <div className="inline-theme-panel-header">
+        <strong>چیدمان صفحه</strong>
+        <span>پیش‌نمایش زنده است؛ ذخیره یا لغو از نوار پایین انجام می‌شود.</span>
+      </div>
+
+      <LayoutFieldset title="کارت Hero">
+        <PresetControl value={layout.hero.density} onChange={setHeroPreset} />
+        <RangeControl
+          label="ارتفاع کارت"
+          value={layout.hero.minHeight}
+          min={440}
+          max={780}
+          step={10}
+          suffix="px"
+          onChange={(minHeight) =>
+            editor.updateLayoutSettings((current) => ({ ...current, hero: { ...current.hero, minHeight } }))
+          }
+        />
+        <RangeControl
+          label="ارتفاع تصویر"
+          value={layout.hero.visualHeight}
+          min={220}
+          max={380}
+          step={10}
+          suffix="px"
+          onChange={(visualHeight) =>
+            editor.updateLayoutSettings((current) => ({ ...current, hero: { ...current.hero, visualHeight } }))
+          }
+        />
+        <RangeControl
+          label="فاصله محتوای Hero"
+          value={layout.hero.contentGap}
+          min={16}
+          max={52}
+          step={2}
+          suffix="px"
+          onChange={(contentGap) =>
+            editor.updateLayoutSettings((current) => ({ ...current, hero: { ...current.hero, contentGap } }))
+          }
+        />
+      </LayoutFieldset>
+
+      <LayoutFieldset title="سکشن‌ها">
+        <PresetControl value={layout.sections.density} onChange={setSectionPreset} />
+        <RangeControl
+          label="فاصله عمودی سکشن"
+          value={layout.sections.paddingY}
+          min={40}
+          max={112}
+          step={4}
+          suffix="px"
+          onChange={(paddingY) =>
+            editor.updateLayoutSettings((current) => ({ ...current, sections: { ...current.sections, paddingY } }))
+          }
+        />
+        <RangeControl
+          label="عرض امن صفحه"
+          value={layout.sections.maxWidth}
+          min={1040}
+          max={1320}
+          step={20}
+          suffix="px"
+          onChange={(maxWidth) =>
+            editor.updateLayoutSettings((current) => ({ ...current, sections: { ...current.sections, maxWidth } }))
+          }
+        />
+      </LayoutFieldset>
+
+      <LayoutFieldset title="کارت‌ها و محصولات">
+        <PresetControl value={layout.products.density} onChange={setProductPreset} />
+        <RangeControl
+          label="گردی کارت‌ها"
+          value={layout.cards.radius}
+          min={18}
+          max={40}
+          step={1}
+          suffix="px"
+          onChange={(radius) =>
+            editor.updateLayoutSettings((current) => ({ ...current, cards: { ...current.cards, radius } }))
+          }
+        />
+      </LayoutFieldset>
+
+      <LayoutFieldset title="نوار پایانی">
+        <PresetControl value={layout.announcement.density} onChange={setAnnouncementPreset} />
+        <RangeControl
+          label="ارتفاع نوار"
+          value={layout.announcement.minHeight}
+          min={88}
+          max={220}
+          step={4}
+          suffix="px"
+          onChange={(minHeight) =>
+            editor.updateLayoutSettings((current) => ({
+              ...current,
+              announcement: { ...current.announcement, minHeight }
+            }))
+          }
+        />
+      </LayoutFieldset>
+
+      <button className="btn btn-secondary" type="button" onClick={editor.resetLayoutSettings}>
+        بازنشانی چیدمان
+      </button>
+    </aside>
+  );
+}
+
+function LayoutFieldset({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <fieldset className="inline-layout-fieldset">
+      <legend>{title}</legend>
+      {children}
+    </fieldset>
+  );
+}
+
+function PresetControl({
+  value,
+  onChange
+}: {
+  value: HomepageLayoutDensity;
+  onChange: (value: HomepageLayoutDensity) => void;
+}) {
+  return (
+    <div className="inline-preset-control" role="group" aria-label="پیش‌فرض فاصله و اندازه">
+      <button type="button" className={value === "compact" ? "is-active" : ""} onClick={() => onChange("compact")}>
+        فشرده
+      </button>
+      <button type="button" className={value === "normal" ? "is-active" : ""} onClick={() => onChange("normal")}>
+        معمولی
+      </button>
+      <button type="button" className={value === "spacious" ? "is-active" : ""} onClick={() => onChange("spacious")}>
+        باز
+      </button>
+    </div>
+  );
+}
+
+function RangeControl({
+  label,
+  value,
+  min,
+  max,
+  step,
+  suffix,
+  onChange
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  suffix: string;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <label className="inline-range-control">
+      <span>
+        {label}
+        <strong dir="ltr">{value}{suffix}</strong>
+      </span>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+      />
+    </label>
+  );
+}
+
+function ThemeColorField({
+  label,
+  value,
+  fallback,
+  placeholder,
+  onChange
+}: {
+  label: string;
+  value: string;
+  fallback: string;
+  placeholder: string;
+  onChange: (value: string) => void;
+}) {
+  const hasInvalidValue = value.trim().length > 0 && !isHexColor(value);
+
+  return (
+    <label className="inline-theme-field">
+      <span>{label}</span>
+      <div className="inline-color-row">
+        <input type="color" value={isHexColor(value) ? value : fallback} onChange={(event) => onChange(event.target.value)} />
+        <input dir="ltr" value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} />
+      </div>
+      <small className={cx("inline-theme-helper", hasInvalidValue && "is-error")}>
+        {hasInvalidValue ? "فقط رنگ هگز مثل #1a73e8 قابل ذخیره است." : "می‌توانی از پیکر یا کد هگز استفاده کنی."}
+      </small>
+    </label>
+  );
+}
+
+function ThemeSegmentedField<TValue extends string>({
+  label,
+  hint,
+  value,
+  options,
+  onChange
+}: {
+  label: string;
+  hint: string;
+  value: TValue;
+  options: ReadonlyArray<{
+    value: TValue;
+    label: string;
+  }>;
+  onChange: (value: TValue) => void;
+}) {
+  return (
+    <div className="inline-theme-field">
+      <span>{label}</span>
+      <div className="inline-preset-control" role="group" aria-label={label}>
+        {options.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            className={value === option.value ? "is-active" : ""}
+            onClick={() => onChange(option.value)}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+      <small className="inline-theme-helper">{hint}</small>
+    </div>
+  );
+}
+
+function ThemePreviewCard({ theme }: { theme: InlineThemeValues }) {
+  const headingFont = getHomepageFontOption(theme.headingFontFamily);
+  const bodyFont = getHomepageFontOption(theme.fontFamily);
+
+  return (
+    <div className="inline-theme-preview" style={buildInlineThemeStyleCss(theme)}>
+      <div className="inline-theme-preview-card">
+        <span className="inline-theme-preview-eyebrow">پیش‌نمایش زنده</span>
+        <strong className="inline-theme-preview-title">{headingFont?.label || "فونت تیتر"} برای تیترها</strong>
+        <p>
+          {bodyFont?.label || "فونت اصلی"} برای متن بدنه، با کارت، فاصله و دکمه‌هایی که از تنظیمات فعلی پیروی
+          می‌کنند.
+        </p>
+        <div className="inline-theme-preview-actions">
+          <button type="button" className="btn btn-primary">
+            دکمه اصلی
+          </button>
+          <button type="button" className="btn btn-secondary">
+            دکمه فرعی
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ThemeQuickPanel() {
   const editor = useInlineEditor();
 
@@ -846,68 +1353,172 @@ function ThemeQuickPanel() {
     return null;
   }
 
+  const normalizedTheme = editor.resolvedTheme;
+
   return (
-    <aside className="inline-theme-panel" aria-label="تنظیمات سریع ظاهر">
+    <aside className="inline-theme-panel inline-theme-appearance-panel" aria-label="تنظیمات ظاهر سایت">
       <div className="inline-theme-panel-header">
-        <strong>ظاهر سریع</strong>
-        <span>پیش‌نمایش فوری</span>
+        <strong>کنترل ظاهر سایت</strong>
+        <span>فقط برای super admin. تغییرات با ذخیره نهایی اعمال می‌شوند و CSS دلخواهی وارد سایت نمی‌شود.</span>
       </div>
 
-      <label className="inline-theme-field">
-        <span>رنگ اصلی</span>
-        <div className="inline-color-row">
-          <input
-            type="color"
-            value={isHexColor(editor.theme.primaryColor) ? editor.theme.primaryColor : "#1a73e8"}
-            onChange={(event) => editor.updateThemeField("primaryColor", event.target.value)}
-          />
-          <input
-            dir="ltr"
-            value={editor.theme.primaryColor}
-            onChange={(event) => editor.updateThemeField("primaryColor", event.target.value)}
-            placeholder="#1a73e8"
-          />
+      <div className="inline-theme-group">
+        <div className="inline-theme-group-header">
+          <strong>پالت پیشنهادی</strong>
+          <span>برای شروع سریع، یکی از ترکیب‌های هماهنگ را انتخاب کن.</span>
         </div>
-      </label>
-
-      <label className="inline-theme-field">
-        <span>رنگ مکمل</span>
-        <div className="inline-color-row">
-          <input
-            type="color"
-            value={isHexColor(editor.theme.secondaryColor) ? editor.theme.secondaryColor : "#8c6bff"}
-            onChange={(event) => editor.updateThemeField("secondaryColor", event.target.value)}
-          />
-          <input
-            dir="ltr"
-            value={editor.theme.secondaryColor}
-            onChange={(event) => editor.updateThemeField("secondaryColor", event.target.value)}
-            placeholder="#8c6bff"
-          />
-        </div>
-      </label>
-
-      <label className="inline-theme-field">
-        <span>فونت</span>
-        <select
-          value={editor.theme.fontFamily}
-          onChange={(event) => editor.updateThemeField("fontFamily", event.target.value)}
-        >
-          {INLINE_FONT_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
+        <div className="inline-theme-preset-grid">
+          {INLINE_THEME_COLOR_PRESETS.map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
+              className="inline-theme-preset-card"
+              onClick={() => {
+                editor.updateThemeField("primaryColor", preset.primaryColor);
+                editor.updateThemeField("secondaryColor", preset.secondaryColor);
+                editor.updateThemeField("backgroundTint", preset.backgroundTint);
+              }}
+            >
+              <span
+                className="inline-theme-preset-swatch"
+                style={{
+                  background: `linear-gradient(135deg, ${preset.primaryColor} 0%, ${preset.secondaryColor} 100%)`
+                }}
+                aria-hidden="true"
+              />
+              <span
+                className="inline-theme-preset-swatch is-muted"
+                style={{ backgroundColor: preset.backgroundTint }}
+                aria-hidden="true"
+              />
+              <strong>{preset.label}</strong>
+            </button>
           ))}
-        </select>
-      </label>
+        </div>
+      </div>
 
-      <div className="inline-theme-divider" />
+      <div className="inline-theme-group">
+        <div className="inline-theme-group-header">
+          <strong>رنگ‌ها</strong>
+          <span>رنگ اصلی، مکمل و ته‌رنگ پس‌زمینه را جداگانه کنترل کن.</span>
+        </div>
+        <ThemeColorField
+          label="رنگ اصلی"
+          value={editor.theme.primaryColor}
+          fallback={DEFAULT_INLINE_THEME_VALUES.primaryColor}
+          placeholder="#1a73e8"
+          onChange={(value) => editor.updateThemeField("primaryColor", value)}
+        />
+        <ThemeColorField
+          label="رنگ مکمل"
+          value={editor.theme.secondaryColor}
+          fallback={DEFAULT_INLINE_THEME_VALUES.secondaryColor}
+          placeholder="#8c6bff"
+          onChange={(value) => editor.updateThemeField("secondaryColor", value)}
+        />
+        <ThemeColorField
+          label="ته‌رنگ پس‌زمینه"
+          value={editor.theme.backgroundTint}
+          fallback={DEFAULT_INLINE_THEME_VALUES.backgroundTint}
+          placeholder="#fafcff"
+          onChange={(value) => editor.updateThemeField("backgroundTint", value)}
+        />
+      </div>
 
-      <div className="inline-image-note">
-        <strong>تصویر Hero</strong>
-        <p>
-          مدل فعلی فیلد URL تصویر Hero ندارد. فعلا آپلود یا ذخیره تصویر اضافه نشده؛ بعدا می‌توانیم با یک migration کوچک، URL تصویر را هم قابل ویرایش کنیم.
-        </p>
+      <div className="inline-theme-group">
+        <div className="inline-theme-group-header">
+          <strong>فونت‌ها</strong>
+          <span>فونت بدنه و تیترها از رجیستری امن سایت انتخاب می‌شوند.</span>
+        </div>
+        <label className="inline-theme-field">
+          <span>فونت اصلی</span>
+          <FontPicker
+            value={normalizedTheme.fontFamily}
+            placeholder="وزیرمتن"
+            ariaLabel="انتخاب فونت اصلی سایت"
+            defaultHint="پیش‌فرض پیشنهادی"
+            onChange={(value) =>
+              editor.updateThemeField(
+                "fontFamily",
+                (value || DEFAULT_INLINE_THEME_VALUES.fontFamily) as InlineThemeValues["fontFamily"]
+              )
+            }
+          />
+        </label>
+        <label className="inline-theme-field">
+          <span>فونت تیترها</span>
+          <FontPicker
+            value={normalizedTheme.headingFontFamily}
+            placeholder="وزیرمتن"
+            ariaLabel="انتخاب فونت تیترهای سایت"
+            defaultHint="پیش‌فرض پیشنهادی"
+            onChange={(value) =>
+              editor.updateThemeField(
+                "headingFontFamily",
+                (value || DEFAULT_INLINE_THEME_VALUES.headingFontFamily) as InlineThemeValues["headingFontFamily"]
+              )
+            }
+          />
+        </label>
+      </div>
+
+      <div className="inline-theme-group">
+        <div className="inline-theme-group-header">
+          <strong>فرم و تراکم</strong>
+          <span>بدون دستکاری دستی CSS، ظاهر کلی دکمه‌ها و کارت‌ها را تنظیم کن.</span>
+        </div>
+        <ThemeSegmentedField
+          label="گردی دکمه"
+          hint="روی دکمه‌های اصلی و فرعی اعمال می‌شود."
+          value={normalizedTheme.buttonRadius}
+          options={INLINE_THEME_BUTTON_RADIUS_OPTIONS}
+          onChange={(value) => editor.updateThemeField("buttonRadius", value)}
+        />
+        <ThemeSegmentedField
+          label="گردی کارت"
+          hint="روی کارت‌های اصلی و سطوح برجسته تاثیر می‌گذارد."
+          value={normalizedTheme.cardRadius}
+          options={INLINE_THEME_CARD_RADIUS_OPTIONS}
+          onChange={(value) => editor.updateThemeField("cardRadius", value)}
+        />
+        <ThemeSegmentedField
+          label="سایه کارت"
+          hint="شدت عمق کارت‌ها را کنترل می‌کند."
+          value={normalizedTheme.cardShadow}
+          options={INLINE_THEME_CARD_SHADOW_OPTIONS}
+          onChange={(value) => editor.updateThemeField("cardShadow", value)}
+        />
+        <ThemeSegmentedField
+          label="تراکم سکشن‌ها"
+          hint="برای صفحات عمومی با سکشن‌های استاندارد استفاده می‌شود."
+          value={normalizedTheme.sectionDensity}
+          options={INLINE_THEME_DENSITY_OPTIONS.map((option) => ({
+            value: option.value,
+            label: option.label
+          }))}
+          onChange={(value) => editor.updateThemeField("sectionDensity", value)}
+        />
+        <ThemeSegmentedField
+          label="استایل دکمه اصلی"
+          hint="حالت پر، ملایم یا خطی."
+          value={normalizedTheme.buttonStyle}
+          options={INLINE_THEME_BUTTON_STYLE_OPTIONS}
+          onChange={(value) => editor.updateThemeField("buttonStyle", value)}
+        />
+      </div>
+
+      <div className="inline-theme-group">
+        <div className="inline-theme-group-header">
+          <strong>پیش‌نمایش</strong>
+          <span>نمونه پایین دقیقاً از همان CSS variableهای عمومی سایت استفاده می‌کند.</span>
+        </div>
+        <ThemePreviewCard theme={normalizedTheme} />
+      </div>
+
+      <div className="inline-theme-actions">
+        <button className="btn btn-secondary" type="button" onClick={editor.resetThemeToDefaults}>
+          بازنشانی به پیش‌فرض
+        </button>
       </div>
     </aside>
   );

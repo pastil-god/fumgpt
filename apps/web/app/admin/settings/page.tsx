@@ -1,15 +1,24 @@
 import type { Metadata } from "next";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { CloudinaryImageField } from "@/components/admin/cloudinary-image-field";
 import { requireAuthorizedSession } from "@/lib/authorization";
 import { recordAuditEvent } from "@/lib/observability/audit";
 import {
   SITE_SETTINGS_ID,
+  getAppearanceAuditDetails,
   getEditableSiteSettingsDefaults,
   getStoredSiteSettings,
   saveSiteSettingsFromForm
 } from "@/lib/settings/admin-settings";
-import { INLINE_FONT_OPTIONS } from "@/lib/settings/inline-homepage";
+import {
+  INLINE_FONT_OPTIONS,
+  INLINE_THEME_BUTTON_RADIUS_OPTIONS,
+  INLINE_THEME_BUTTON_STYLE_OPTIONS,
+  INLINE_THEME_CARD_RADIUS_OPTIONS,
+  INLINE_THEME_CARD_SHADOW_OPTIONS,
+  INLINE_THEME_DENSITY_OPTIONS
+} from "@/lib/settings/inline-homepage";
 
 export const metadata: Metadata = {
   title: "تنظیمات سایت"
@@ -23,7 +32,7 @@ async function saveSettings(formData: FormData) {
     nextPath: "/admin/settings"
   });
 
-  await saveSiteSettingsFromForm(formData, session.userId);
+  const savedSettings = await saveSiteSettingsFromForm(formData, session.userId);
   await recordAuditEvent({
     action: "admin.site_settings_updated",
     entityType: "site_settings",
@@ -33,6 +42,17 @@ async function saveSettings(formData: FormData) {
       source: "admin-form"
     },
     message: "Super admin updated site settings"
+  });
+  await recordAuditEvent({
+    action: "admin.site_appearance_updated",
+    entityType: "site_settings",
+    entityId: SITE_SETTINGS_ID,
+    userId: session.userId,
+    details: {
+      source: "admin-form",
+      appearance: getAppearanceAuditDetails(savedSettings)
+    },
+    message: "Super admin updated site appearance settings"
   });
   revalidatePath("/", "layout");
   revalidatePath("/admin/settings");
@@ -94,6 +114,34 @@ function TextAreaField({
   );
 }
 
+function SelectField({
+  name,
+  label,
+  defaultValue,
+  options
+}: {
+  name: string;
+  label: string;
+  defaultValue?: string;
+  options: Array<{
+    value: string;
+    label: string;
+  }>;
+}) {
+  return (
+    <label className="checkout-field admin-settings-field">
+      <span>{label}</span>
+      <select name={name} defaultValue={defaultValue}>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 export default async function AdminSiteSettingsPage({
   searchParams
 }: {
@@ -138,23 +186,83 @@ export default async function AdminSiteSettingsPage({
         <div className="admin-settings-group">
           <div>
             <strong>ظاهر و دارایی‌ها</strong>
-            <p className="muted">فعلاً تصاویر با URL مدیریت می‌شوند تا نیازی به سرویس ذخیره‌سازی پولی نباشد.</p>
+            <p className="muted">رنگ، فونت، فرم کارت‌ها و آپلود لوگو/فیوآیکن از اینجا به‌صورت امن کنترل می‌شوند و هیچ CSS دلخواهی وارد سایت نمی‌شود.</p>
           </div>
           <div className="admin-settings-grid">
-            <TextField name="logoUrl" label="آدرس لوگو" defaultValue={defaults.logoUrl} placeholder="/logo.svg یا https://..." />
-            <TextField name="faviconUrl" label="آدرس favicon" defaultValue={defaults.faviconUrl} placeholder="/icon.svg" />
+            <CloudinaryImageField
+              name="logoUrl"
+              label="لوگو"
+              usage="logo"
+              defaultValue={defaults.logoUrl}
+              placeholder="/logo.svg یا https://..."
+            />
+            <CloudinaryImageField
+              name="faviconUrl"
+              label="favicon"
+              usage="favicon"
+              defaultValue={defaults.faviconUrl}
+              placeholder="/icon.svg یا https://..."
+            />
             <TextField name="primaryColor" label="رنگ اصلی" defaultValue={defaults.primaryColor} placeholder="#1a73e8" type="color" />
             <TextField name="secondaryColor" label="رنگ مکمل" defaultValue={defaults.secondaryColor} placeholder="#8c6bff" type="color" />
-            <label className="checkout-field admin-settings-field">
-              <span>فونت اصلی</span>
-              <select name="fontFamily" defaultValue={defaults.fontFamily}>
-                {INLINE_FONT_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <TextField name="backgroundTint" label="ته‌رنگ پس‌زمینه" defaultValue={defaults.backgroundTint} placeholder="#fafcff" type="color" />
+            <SelectField
+              name="fontFamily"
+              label="فونت اصلی"
+              defaultValue={defaults.fontFamily}
+              options={INLINE_FONT_OPTIONS.map((option) => ({ value: option.value, label: option.label }))}
+            />
+            <SelectField
+              name="headingFontFamily"
+              label="فونت تیترها"
+              defaultValue={defaults.headingFontFamily}
+              options={INLINE_FONT_OPTIONS.map((option) => ({ value: option.value, label: option.label }))}
+            />
+            <SelectField
+              name="buttonRadius"
+              label="گردی دکمه"
+              defaultValue={defaults.buttonRadius}
+              options={INLINE_THEME_BUTTON_RADIUS_OPTIONS.map((option) => ({
+                value: option.value,
+                label: option.label
+              }))}
+            />
+            <SelectField
+              name="cardRadius"
+              label="گردی کارت"
+              defaultValue={defaults.cardRadius}
+              options={INLINE_THEME_CARD_RADIUS_OPTIONS.map((option) => ({
+                value: option.value,
+                label: option.label
+              }))}
+            />
+            <SelectField
+              name="cardShadow"
+              label="شدت سایه کارت"
+              defaultValue={defaults.cardShadow}
+              options={INLINE_THEME_CARD_SHADOW_OPTIONS.map((option) => ({
+                value: option.value,
+                label: option.label
+              }))}
+            />
+            <SelectField
+              name="sectionDensity"
+              label="تراکم سکشن‌ها"
+              defaultValue={defaults.sectionDensity}
+              options={INLINE_THEME_DENSITY_OPTIONS.map((option) => ({
+                value: option.value,
+                label: option.label
+              }))}
+            />
+            <SelectField
+              name="buttonStyle"
+              label="استایل دکمه اصلی"
+              defaultValue={defaults.buttonStyle}
+              options={INLINE_THEME_BUTTON_STYLE_OPTIONS.map((option) => ({
+                value: option.value,
+                label: option.label
+              }))}
+            />
           </div>
         </div>
 

@@ -27,6 +27,11 @@ export type Product = {
   supportNote?: string;
   trustNote?: string;
   priority?: number;
+  priceLabel?: string;
+  ctaText?: string;
+  ctaHref?: string;
+  seoTitle?: string;
+  seoDescription?: string;
 };
 
 export const categories: Array<{

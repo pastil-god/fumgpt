@@ -44,6 +44,7 @@ export type HomePageContent = {
     marketTitle: string;
     marketDescription: string;
     marketBadge: string;
+    imageUrl?: string;
   };
   categorySection: HomePageSection;
   featuredSection: HomePageSection;

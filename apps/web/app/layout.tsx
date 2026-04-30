@@ -30,7 +30,7 @@ import { AntiGravitySwirl } from "@/components/anti-gravity-swirl";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { getStorefrontSettings } from "@/lib/content";
-import { getInlineFontFamilyFallback } from "@/lib/settings/inline-homepage";
+import { buildInlineThemeStyleCss } from "@/lib/settings/inline-homepage";
 import { siteConfig } from "@/lib/site";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -98,14 +98,7 @@ export default async function RootLayout({
 }>) {
   const decorativeBackgroundMode = "static" as const;
   const settings = await getStorefrontSettings();
-  const themeStyle = {
-    "--color-accent": settings.appearance.primaryColor,
-    "--color-accent-hover": settings.appearance.primaryColor,
-    "--accent-purple": settings.appearance.secondaryColor,
-    "--primary": settings.appearance.primaryColor,
-    "--primary-strong": settings.appearance.primaryColor,
-    "--font-ui": getInlineFontFamilyFallback(settings.appearance.fontFamily)
-  } as CSSProperties;
+  const themeStyle = buildInlineThemeStyleCss(settings.appearance) as CSSProperties;
 
   return (
     <html lang="fa" dir="rtl">

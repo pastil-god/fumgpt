@@ -72,6 +72,17 @@ AUTH_SMS_TRANSPORT=mock
 CHECKOUT_PAYMENT_PROVIDER=manual
 ```
 
+آپلود تصویر توسط super_admin (اختیاری):
+
+```env
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+CLOUDINARY_UPLOAD_FOLDER=fumgpt/admin
+```
+
+راهنمای ویرایش inline تصویر Hero: [docs/homepage-inline-images-fa.md](docs/homepage-inline-images-fa.md)
+
 ## مدیریت سایت
 
 مسیرهای مهم ادمین:
@@ -79,6 +90,7 @@ CHECKOUT_PAYMENT_PROVIDER=manual
 - `/admin` نمای کلی پنل داخلی
 - `/admin/settings` تنظیمات سایت، برند، SEO، تماس، فوتر و رنگ‌ها
 - `/admin/homepage` ویرایش متن‌های صفحه اصلی و فعال/غیرفعال کردن سکشن‌ها
+- `/admin/products` مدیریت محصولات داخلی StoreProduct توسط `super_admin`
 - `/admin/orders` مدیریت سفارش‌ها
 - `/admin/users` جست‌وجوی کاربران و تغییر نقش توسط super admin
 
@@ -91,6 +103,20 @@ CHECKOUT_PAYMENT_PROVIDER=manual
 - [چک‌لیست استقرار](docs/deploy-checklist-fa.md)
 
 ## CMS
+
+## Internal Products
+
+Set `PRODUCTS_INTERNAL_ENABLED=true` to enable DB-backed `StoreProduct` overrides from `/admin/products` for `super_admin`. The safe default when the variable is omitted is `false`; internal products are ignored and the existing product pipeline remains `Contentful -> local fallback`.
+
+Resolution order with the flag enabled:
+
+- Load products from Contentful, or local fallback if Contentful is unavailable.
+- Load internal `store_products`.
+- Active internal products with the same slug override the Contentful/fallback product.
+- Active internal products with new slugs are included in `/products` and `/products/[slug]`.
+- Inactive internal products hide the matching slug from the storefront.
+
+Rollback switch: set `PRODUCTS_INTERNAL_ENABLED=false`. Optional SQL rollback, not run automatically: `DROP TABLE "store_products";`.
 
 Contentful برای محصولات، خبرها و محتوای حجیم‌تر پشتیبانی می‌شود. اگر envهای Contentful تنظیم نباشند، سایت از fallback داخلی استفاده می‌کند.
 

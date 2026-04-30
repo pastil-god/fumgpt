@@ -4,18 +4,32 @@ import { prisma } from "@/lib/db/prisma";
 import { homePageContent as fallbackHomePageContent, type HomePageContent } from "@/lib/mock-homepage";
 import { fallbackStorefrontSettings, type StorefrontSettings } from "@/lib/site";
 import {
-  getInlineFontFamilyFallback,
+  DEFAULT_INLINE_THEME_VALUES,
+  getInlineFontKeyFallback,
+  normalizeHomepageLayoutSettings,
   normalizeHomepageFieldStyles,
+  normalizeInlineThemeValues,
   isHexColor,
   isSafeImageUrl,
+  isSafeInlineImageUrl,
   isSafeInlineHref,
+  type InlineTextStyles,
+  type HomepageLayoutSettings,
   type HomepageFieldStyles,
   type InlineHomepageValues,
   type InlineThemeValues
 } from "@/lib/settings/inline-homepage";
+import {
+  DEFAULT_INLINE_PRODUCTS_PAGE_VALUES,
+  normalizeInlineProductsPageFieldStyles,
+  normalizeInlineProductsPageValues,
+  type InlineProductsPageFieldStyles,
+  type InlineProductsPageValues
+} from "@/lib/settings/inline-products";
 
 export const SITE_SETTINGS_ID = "main";
 export const HOMEPAGE_SETTINGS_ID = "main";
+export const PAGE_SETTINGS_PRODUCTS_SLUG = "products";
 
 function cleanString(value: FormDataEntryValue | string | null | undefined) {
   const text = typeof value === "string" ? value.trim() : "";
@@ -32,13 +46,39 @@ function cleanSafeImageUrl(value: FormDataEntryValue | string | null | undefined
   return isSafeImageUrl(text) ? text : null;
 }
 
+function cleanSafeInlineImageUrl(value: FormDataEntryValue | string | null | undefined) {
+  const text = cleanString(value);
+  return isSafeInlineImageUrl(text) ? text : null;
+}
+
 function cleanHexColor(value: FormDataEntryValue | string | null | undefined) {
   const text = cleanString(value);
   return isHexColor(text) ? text : null;
 }
 
 function cleanFontFamily(value: FormDataEntryValue | string | null | undefined) {
-  return getInlineFontFamilyFallback(cleanString(value));
+  return getInlineFontKeyFallback(cleanString(value));
+}
+
+function getAppearanceInput(
+  source: Record<string, unknown> | null | undefined,
+  base: InlineThemeValues
+): InlineThemeValues {
+  return normalizeInlineThemeValues(
+    {
+      primaryColor: typeof source?.primaryColor === "string" ? source.primaryColor : undefined,
+      secondaryColor: typeof source?.secondaryColor === "string" ? source.secondaryColor : undefined,
+      backgroundTint: typeof source?.backgroundTint === "string" ? source.backgroundTint : undefined,
+      fontFamily: typeof source?.fontFamily === "string" ? source.fontFamily : undefined,
+      headingFontFamily: typeof source?.headingFontFamily === "string" ? source.headingFontFamily : undefined,
+      buttonRadius: typeof source?.buttonRadius === "string" ? source.buttonRadius : undefined,
+      cardRadius: typeof source?.cardRadius === "string" ? source.cardRadius : undefined,
+      cardShadow: typeof source?.cardShadow === "string" ? source.cardShadow : undefined,
+      sectionDensity: typeof source?.sectionDensity === "string" ? source.sectionDensity : undefined,
+      buttonStyle: typeof source?.buttonStyle === "string" ? source.buttonStyle : undefined
+    },
+    base
+  );
 }
 
 function pickText(source: Record<string, unknown> | null | undefined, key: string, fallback: string) {
@@ -98,16 +138,47 @@ export const getStoredHomepageSettings = cache(async () => {
   }
 });
 
+export const getStoredPageSetting = cache(async (slug: string) => {
+  if (!isDatabaseConfigured()) {
+    return null;
+  }
+
+  try {
+    return await prisma.pageSetting.findUnique({ where: { slug } });
+  } catch (error) {
+    console.warn(`Page settings fallback: settings for "${slug}" could not be loaded`, error);
+    return null;
+  }
+});
+
 export const getHomepageStyleSettings = cache(async (): Promise<HomepageFieldStyles> => {
   const settings = await getStoredHomepageSettings();
   return normalizeStoredHomepageFieldStyles(settings?.homepageFieldStyles);
+});
+
+export const getHomepageLayoutSettings = cache(async (): Promise<HomepageLayoutSettings> => {
+  const settings = await getStoredHomepageSettings();
+  return normalizeStoredHomepageLayoutSettings(settings?.homepageFieldStyles);
 });
 
 function normalizeStoredHomepageFieldStyles(value: unknown): HomepageFieldStyles {
   return normalizeHomepageFieldStyles(value) || {};
 }
 
-function serializeHomepageFieldStyles(fieldStyles: HomepageFieldStyles) {
+function normalizeStoredHomepageLayoutSettings(value: unknown): HomepageLayoutSettings {
+  return normalizeHomepageLayoutSettings(value) || normalizeHomepageLayoutSettings(null)!;
+}
+
+function serializeHomepageInlineDesignSettings(fieldStyles: HomepageFieldStyles, layout: HomepageLayoutSettings) {
+  return JSON.parse(
+    JSON.stringify({
+      fields: fieldStyles,
+      layout
+    })
+  ) as Prisma.InputJsonValue;
+}
+
+function serializeInlineTextStyles(fieldStyles: InlineTextStyles<string>) {
   return JSON.parse(JSON.stringify(fieldStyles)) as Prisma.InputJsonValue;
 }
 
@@ -144,11 +215,7 @@ export function mergeStorefrontSettings(
       description: pickText(settings, "footerText", base.footer.description),
       copyright: base.footer.copyright
     },
-    appearance: {
-      primaryColor: pickHexColor(settings.primaryColor, base.appearance.primaryColor),
-      secondaryColor: pickHexColor(settings.secondaryColor, base.appearance.secondaryColor),
-      fontFamily: getInlineFontFamilyFallback(pickText(settings, "fontFamily", base.appearance.fontFamily))
-    }
+    appearance: getAppearanceInput(settings, base.appearance)
   };
 }
 
@@ -179,7 +246,8 @@ export function mergeHomepageContent(
       marketLabel: pickText(settings, "heroMarketLabel", base.hero.marketLabel),
       marketTitle: pickText(settings, "heroMarketTitle", base.hero.marketTitle),
       marketDescription: pickText(settings, "heroMarketDescription", base.hero.marketDescription),
-      marketBadge: pickText(settings, "heroMarketBadge", base.hero.marketBadge)
+      marketBadge: pickText(settings, "heroMarketBadge", base.hero.marketBadge),
+      imageUrl: pickOptionalText(settings, "heroImageUrl", base.hero.imageUrl)
     },
     categorySection: {
       isVisible: settings.showCategorySection,
@@ -251,9 +319,16 @@ export function getEditableSiteSettingsDefaults(settings: Awaited<ReturnType<typ
     metaDescription: settings?.metaDescription || merged.siteDescription,
     logoUrl: settings?.logoUrl || merged.logoUrl || "",
     faviconUrl: settings?.faviconUrl || "",
-    primaryColor: settings?.primaryColor || merged.appearance.primaryColor,
-    secondaryColor: settings?.secondaryColor || merged.appearance.secondaryColor,
-    fontFamily: getInlineFontFamilyFallback(settings?.fontFamily || merged.appearance.fontFamily),
+    primaryColor: merged.appearance.primaryColor,
+    secondaryColor: merged.appearance.secondaryColor,
+    backgroundTint: merged.appearance.backgroundTint,
+    fontFamily: merged.appearance.fontFamily,
+    headingFontFamily: merged.appearance.headingFontFamily,
+    buttonRadius: merged.appearance.buttonRadius,
+    cardRadius: merged.appearance.cardRadius,
+    cardShadow: merged.appearance.cardShadow,
+    sectionDensity: merged.appearance.sectionDensity,
+    buttonStyle: merged.appearance.buttonStyle,
     footerText: settings?.footerText || merged.footer.description,
     contactPhone: settings?.contactPhone || merged.support.phone,
     contactEmail: settings?.contactEmail || merged.support.email,
@@ -272,16 +347,77 @@ export function getEditableHomepageSettingsDefaults(settings: Awaited<ReturnType
   return mergeHomepageContent(fallbackHomePageContent, settings);
 }
 
+export async function getProductsPageInlineSettings() {
+  const settings = await getStoredPageSetting(PAGE_SETTINGS_PRODUCTS_SLUG);
+  const contentSource =
+    typeof settings?.content === "object" && settings?.content && !Array.isArray(settings.content)
+      ? (settings.content as Record<string, unknown>)
+      : {};
+
+  return {
+    content: normalizeInlineProductsPageValues(
+      {
+        pageTitle: settings?.title || undefined,
+        pageDescription: settings?.description || undefined,
+        ...contentSource
+      },
+      DEFAULT_INLINE_PRODUCTS_PAGE_VALUES
+    ),
+    fieldStyles: normalizeInlineProductsPageFieldStyles(settings?.fieldStyles) || {}
+  };
+}
+
+export function getAppearanceAuditDetails(settings: unknown) {
+  const appearance = normalizeInlineThemeValues(settings, DEFAULT_INLINE_THEME_VALUES);
+
+  return {
+    primaryColor: appearance.primaryColor,
+    secondaryColor: appearance.secondaryColor,
+    backgroundTint: appearance.backgroundTint,
+    fontFamily: appearance.fontFamily,
+    headingFontFamily: appearance.headingFontFamily,
+    buttonRadius: appearance.buttonRadius,
+    cardRadius: appearance.cardRadius,
+    cardShadow: appearance.cardShadow,
+    sectionDensity: appearance.sectionDensity,
+    buttonStyle: appearance.buttonStyle
+  } satisfies InlineThemeValues;
+}
+
 export async function saveSiteSettingsFromForm(formData: FormData, updatedById: string) {
+  const currentSettings = await getStoredSiteSettings();
+  const mergedAppearance = getAppearanceInput(currentSettings, fallbackStorefrontSettings.appearance);
+  const appearance = normalizeInlineThemeValues(
+    {
+      primaryColor: cleanHexColor(formData.get("primaryColor")),
+      secondaryColor: cleanHexColor(formData.get("secondaryColor")),
+      backgroundTint: cleanHexColor(formData.get("backgroundTint")),
+      fontFamily: cleanFontFamily(formData.get("fontFamily")),
+      headingFontFamily: cleanFontFamily(formData.get("headingFontFamily")),
+      buttonRadius: cleanString(formData.get("buttonRadius")),
+      cardRadius: cleanString(formData.get("cardRadius")),
+      cardShadow: cleanString(formData.get("cardShadow")),
+      sectionDensity: cleanString(formData.get("sectionDensity")),
+      buttonStyle: cleanString(formData.get("buttonStyle"))
+    },
+    mergedAppearance
+  );
   const data = {
     siteTitle: cleanString(formData.get("siteTitle")),
     tagline: cleanString(formData.get("tagline")),
     metaDescription: cleanString(formData.get("metaDescription")),
     logoUrl: cleanSafeImageUrl(formData.get("logoUrl")),
     faviconUrl: cleanSafeImageUrl(formData.get("faviconUrl")),
-    primaryColor: cleanHexColor(formData.get("primaryColor")),
-    secondaryColor: cleanHexColor(formData.get("secondaryColor")),
-    fontFamily: cleanFontFamily(formData.get("fontFamily")),
+    primaryColor: appearance.primaryColor,
+    secondaryColor: appearance.secondaryColor,
+    backgroundTint: appearance.backgroundTint,
+    fontFamily: appearance.fontFamily,
+    headingFontFamily: appearance.headingFontFamily,
+    buttonRadius: appearance.buttonRadius,
+    cardRadius: appearance.cardRadius,
+    cardShadow: appearance.cardShadow,
+    sectionDensity: appearance.sectionDensity,
+    buttonStyle: appearance.buttonStyle,
     footerText: cleanString(formData.get("footerText")),
     contactPhone: cleanString(formData.get("contactPhone")),
     contactEmail: cleanString(formData.get("contactEmail")),
@@ -304,16 +440,50 @@ export async function saveSiteSettingsFromForm(formData: FormData, updatedById: 
 }
 
 export async function saveInlineSiteAppearanceSettings(settings: InlineThemeValues, updatedById: string) {
+  const appearance = getAppearanceAuditDetails(settings);
   const data = {
-    primaryColor: settings.primaryColor,
-    secondaryColor: settings.secondaryColor,
-    fontFamily: settings.fontFamily,
+    primaryColor: appearance.primaryColor,
+    secondaryColor: appearance.secondaryColor,
+    backgroundTint: appearance.backgroundTint,
+    fontFamily: appearance.fontFamily,
+    headingFontFamily: appearance.headingFontFamily,
+    buttonRadius: appearance.buttonRadius,
+    cardRadius: appearance.cardRadius,
+    cardShadow: appearance.cardShadow,
+    sectionDensity: appearance.sectionDensity,
+    buttonStyle: appearance.buttonStyle,
     updatedById
   };
 
   return prisma.siteSetting.upsert({
     where: { id: SITE_SETTINGS_ID },
     create: { id: SITE_SETTINGS_ID, ...data },
+    update: data
+  });
+}
+
+export async function saveProductsPageInlineSettings(
+  content: InlineProductsPageValues,
+  updatedById: string,
+  fieldStyles?: InlineProductsPageFieldStyles
+) {
+  const safeContent = normalizeInlineProductsPageValues(content, DEFAULT_INLINE_PRODUCTS_PAGE_VALUES);
+  const safeFieldStyles = fieldStyles || {};
+  const data = {
+    title: safeContent.pageTitle,
+    description: safeContent.pageDescription,
+    content: JSON.parse(JSON.stringify(safeContent)) as Prisma.InputJsonValue,
+    fieldStyles: serializeInlineTextStyles(safeFieldStyles as InlineTextStyles<string>),
+    updatedById
+  };
+
+  return prisma.pageSetting.upsert({
+    where: { slug: PAGE_SETTINGS_PRODUCTS_SLUG },
+    create: {
+      id: PAGE_SETTINGS_PRODUCTS_SLUG,
+      slug: PAGE_SETTINGS_PRODUCTS_SLUG,
+      ...data
+    },
     update: data
   });
 }
@@ -338,6 +508,7 @@ export async function saveHomepageSettingsFromForm(formData: FormData, updatedBy
     heroMarketTitle: cleanString(formData.get("heroMarketTitle")),
     heroMarketDescription: cleanString(formData.get("heroMarketDescription")),
     heroMarketBadge: cleanString(formData.get("heroMarketBadge")),
+    heroImageUrl: cleanSafeInlineImageUrl(formData.get("heroImageUrl")),
     showCategorySection: formData.get("showCategorySection") === "on",
     categoriesEyebrow: cleanString(formData.get("categoriesEyebrow")),
     categoriesTitle: cleanString(formData.get("categoriesTitle")),
@@ -388,8 +559,11 @@ export async function saveHomepageSettingsFromForm(formData: FormData, updatedBy
 export async function saveInlineHomepageSettings(
   settings: InlineHomepageValues,
   updatedById: string,
-  fieldStyles?: HomepageFieldStyles
+  fieldStyles?: HomepageFieldStyles,
+  layoutSettings?: HomepageLayoutSettings
 ) {
+  const safeFieldStyles = fieldStyles || {};
+  const safeLayoutSettings = layoutSettings || normalizeStoredHomepageLayoutSettings(null);
   const data = {
     heroEyebrow: cleanString(settings.heroEyebrow),
     heroStatusLabel: cleanString(settings.heroStatusLabel),
@@ -409,6 +583,7 @@ export async function saveInlineHomepageSettings(
     heroMarketTitle: cleanString(settings.heroMarketTitle),
     heroMarketDescription: cleanString(settings.heroMarketDescription),
     heroMarketBadge: cleanString(settings.heroMarketBadge),
+    heroImageUrl: cleanSafeInlineImageUrl(settings.heroImageUrl),
     showCategorySection: settings.showCategorySection,
     categoriesEyebrow: cleanString(settings.categoriesEyebrow),
     categoriesTitle: cleanString(settings.categoriesTitle),
@@ -447,7 +622,7 @@ export async function saveInlineHomepageSettings(
     announcementCtaLabel: cleanString(settings.announcementCtaLabel),
     announcementCtaHref: cleanString(settings.announcementCtaHref),
     updatedById,
-    ...(fieldStyles ? { homepageFieldStyles: serializeHomepageFieldStyles(fieldStyles) } : {})
+    homepageFieldStyles: serializeHomepageInlineDesignSettings(safeFieldStyles, safeLayoutSettings)
   };
 
   return prisma.homepageSetting.upsert({

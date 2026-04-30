@@ -34,8 +34,8 @@ export async function generateMetadata({
   }
 
   return buildPublicMetadata({
-    title: product.title,
-    description: product.shortDescription,
+    title: product.seoTitle || product.title,
+    description: product.seoDescription || product.shortDescription,
     path: `/products/${product.slug}`,
     imagePath: product.imageUrl,
     type: "website"

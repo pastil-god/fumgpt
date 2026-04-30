@@ -831,3 +831,13 @@ export const dbSupportRequests = {
     });
   }
 };
+
+export {
+  listInternalProducts,
+  getInternalProductBySlug,
+  listInternalProductCategories,
+  createInternalProduct,
+  updateInternalProduct,
+  toggleInternalProductStatus,
+  toggleInternalProductFeatured
+} from "@/lib/db/store-products";

@@ -21,6 +21,7 @@ export const SUPPORT_LOOKUP_ROLES = ["super_admin", "support_operator"] as const
 export const CMS_ACCESS_ROLES = ["super_admin", "content_manager", "editor"] as const;
 export const SITE_SETTINGS_ROLES = ["super_admin"] as const;
 export const HOMEPAGE_SETTINGS_ROLES = ["super_admin"] as const;
+export const PRODUCT_MANAGEMENT_ROLES = ["super_admin"] as const;
 export const ROLE_MANAGEMENT_ROLES = ["super_admin"] as const;
 
 export type OperationalRole = (typeof OPERATIONAL_ROLES)[number];
@@ -44,7 +45,7 @@ export const ROLE_ACCESS_MATRIX: Array<{
     role: "super_admin",
     label: ROLE_LABELS.super_admin,
     summary: "دسترسی کامل به تنظیمات سایت، محتوا، سفارش‌ها و عملیات داخلی",
-    access: ["داشبورد داخلی", "تنظیمات سایت", "مدیریت صفحه اصلی", "سفارش‌ها", "تغییر نقش کاربران", "ورود به Contentful"]
+    access: ["داشبورد داخلی", "تنظیمات سایت", "مدیریت صفحه اصلی", "محصولات داخلی", "سفارش‌ها", "تغییر نقش کاربران", "ورود به Contentful"]
   },
   {
     role: "content_manager",
@@ -98,6 +99,12 @@ export const ADMIN_SECTIONS = [
     roles: HOMEPAGE_SETTINGS_ROLES
   },
   {
+    href: "/admin/products",
+    label: "محصولات",
+    description: "ایجاد، ویرایش و انتشار محصولات داخلی",
+    roles: PRODUCT_MANAGEMENT_ROLES
+  },
+  {
     href: "/admin/orders",
     label: "سفارش‌ها",
     description: "فهرست و پیگیری سفارش‌های فروشگاه",
@@ -144,6 +151,10 @@ export function canManageSiteSettings(role: AppRole | null | undefined) {
 
 export function canManageHomepageSettings(role: AppRole | null | undefined) {
   return hasRequiredRole(role, HOMEPAGE_SETTINGS_ROLES);
+}
+
+export function canManageProducts(role: AppRole | null | undefined) {
+  return hasRequiredRole(role, PRODUCT_MANAGEMENT_ROLES);
 }
 
 export function canManageRoles(role: AppRole | null | undefined) {

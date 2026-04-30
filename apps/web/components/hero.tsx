@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { EditableAction, EditableText } from "@/components/admin/homepage-inline-editor";
+import { EditableAction, EditableImageFrame, EditableText } from "@/components/admin/homepage-inline-editor";
 import type { Product } from "@/lib/mock-data";
 import { homePageContent, type HomePageContent } from "@/lib/mock-homepage";
 import { fallbackStorefrontSettings, isExternalHref, type StorefrontSettings } from "@/lib/site";
@@ -20,6 +20,8 @@ type Props = {
   canInlineEdit?: boolean;
   fieldStyles?: HomepageFieldStyles;
 };
+
+const DEFAULT_HERO_IMAGE_URL = "/illustrations/hero-ai-marketplace.svg";
 
 function formatStat(value: number) {
   return value.toLocaleString("fa-IR");
@@ -228,13 +230,26 @@ export function Hero({ featured, stats, content, storefront, canInlineEdit = fal
             </div>
 
             <div className="premium-hero-illustration">
+              {canInlineEdit ? (
+                <EditableImageFrame
+                  field="heroImageUrl"
+                  defaultSrc={DEFAULT_HERO_IMAGE_URL}
+                  alt="نمای انتزاعی بازار ابزارهای هوش مصنوعی"
+                  width={780}
+                  height={585}
+                  priority
+                  sizes="(min-width: 1024px) 44vw, 92vw"
+                />
+              ) : (
               <Image
-                src="/illustrations/hero-ai-marketplace.svg"
+                src={resolvedContent.imageUrl || DEFAULT_HERO_IMAGE_URL}
                 alt="نمای انتزاعی بازار ابزارهای هوش مصنوعی"
                 width={780}
                 height={585}
                 priority
+                sizes="(min-width: 1024px) 44vw, 92vw"
               />
+              )}
               <div className="premium-floating-card premium-floating-card-top">
                 <strong>{formatStat(productCount)} محصول</strong>
                 <span>برای نیازهای AI</span>

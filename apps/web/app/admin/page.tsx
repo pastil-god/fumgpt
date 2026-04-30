@@ -4,6 +4,7 @@ import {
   canAccessCmsOperations,
   canLookupUsers,
   canManageHomepageSettings,
+  canManageProducts,
   canManageRoles,
   canManageSiteSettings,
   canViewOrders,
@@ -39,6 +40,11 @@ export default async function AdminOverviewPage() {
       label: "سفارش‌ها",
       value: canViewOrders(session.role) ? "قابل مشاهده" : "بدون دسترسی",
       description: "پیگیری و عملیات سفارش"
+    },
+    {
+      label: "محصولات داخلی",
+      value: canManageProducts(session.role) ? "قابل مدیریت" : "بدون دسترسی",
+      description: "ایجاد و ویرایش محصولات بدون تغییر کد"
     }
   ];
 
@@ -60,6 +66,11 @@ export default async function AdminOverviewPage() {
             {canManageHomepageSettings(session.role) ? (
               <Link className="btn btn-secondary" href="/admin/homepage">
                 مدیریت صفحه اصلی
+              </Link>
+            ) : null}
+            {canManageProducts(session.role) ? (
+              <Link className="btn btn-secondary" href="/admin/products">
+                مدیریت محصولات
               </Link>
             ) : null}
             {canViewOrders(session.role) ? (

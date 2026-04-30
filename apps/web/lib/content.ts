@@ -34,6 +34,11 @@ import {
   mergeHomepageContent,
   mergeStorefrontSettings
 } from "@/lib/settings/admin-settings";
+import { listInternalProducts } from "@/lib/db";
+import {
+  isInternalProductsEnabled,
+  mapInternalStoreProductToStorefrontProduct
+} from "@/lib/store-products";
 
 export {
   getContentModelDefinitionById,
@@ -73,6 +78,30 @@ function sortNews(items: NewsArticle[]) {
 
 function warnCmsFallback(scope: string, error: unknown) {
   console.warn(`Falling back to local ${scope} because Contentful failed:`, error);
+}
+
+function warnInternalProductFallback(error: unknown) {
+  console.warn("Falling back to Contentful/local products because internal products failed:", error);
+}
+
+function mergeInternalProducts(baseProducts: Product[], internalProducts: Awaited<ReturnType<typeof listInternalProducts>>) {
+  const bySlug = new Map(baseProducts.map((product) => [product.slug, product]));
+
+  for (const internalProduct of internalProducts) {
+    const fallbackProduct = bySlug.get(internalProduct.slug);
+
+    if (!internalProduct.isActive) {
+      bySlug.delete(internalProduct.slug);
+      continue;
+    }
+
+    bySlug.set(
+      internalProduct.slug,
+      mapInternalStoreProductToStorefrontProduct(internalProduct, fallbackProduct)
+    );
+  }
+
+  return [...bySlug.values()];
 }
 
 function mergeCategoryOverrides(categoryItems: CategoryMeta[], overrides: Awaited<ReturnType<typeof loadContentfulCategoryContent>>) {
@@ -130,15 +159,31 @@ export const getStorefrontSettings = cache(async () => {
 });
 
 export const getStoreProducts = cache(async () => {
-  if (!isContentfulConfigured()) {
-    return sortProducts(fallbackProducts.filter(isPublicProduct));
+  const sourceProducts = await (async () => {
+    if (!isContentfulConfigured()) {
+      return sortProducts(fallbackProducts.filter(isPublicProduct));
+    }
+
+    try {
+      return sortProducts((await loadContentfulProducts()).filter(isPublicProduct));
+    } catch (error) {
+      warnCmsFallback("products", error);
+      return sortProducts(fallbackProducts.filter(isPublicProduct));
+    }
+  })();
+
+  if (!isInternalProductsEnabled()) {
+    return sourceProducts;
   }
 
   try {
-    return sortProducts((await loadContentfulProducts()).filter(isPublicProduct));
+    const internalProducts = await listInternalProducts({
+      includeInactive: true
+    });
+    return sortProducts(mergeInternalProducts(sourceProducts, internalProducts));
   } catch (error) {
-    warnCmsFallback("products", error);
-    return sortProducts(fallbackProducts.filter(isPublicProduct));
+    warnInternalProductFallback(error);
+    return sourceProducts;
   }
 });
 

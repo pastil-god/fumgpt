@@ -1,3 +1,5 @@
+import { DEFAULT_INLINE_THEME_VALUES, type InlineThemeValues } from "@/lib/settings/inline-homepage";
+
 export type NavigationLocation = "primary" | "footer" | "both";
 
 export type NavigationLink = {
@@ -33,11 +35,7 @@ export type StorefrontSettings = {
     description: string;
     copyright: string;
   };
-  appearance: {
-    primaryColor: string;
-    secondaryColor: string;
-    fontFamily: string;
-  };
+  appearance: InlineThemeValues;
   trustBadges: string[];
   navigation: NavigationLink[];
 };
@@ -80,9 +78,16 @@ export const fallbackStorefrontSettings: StorefrontSettings = {
     copyright: `© ${new Date().getFullYear()} ${fallbackBrandName}. همه حقوق محفوظ است.`
   },
   appearance: {
-    primaryColor: process.env.NEXT_PUBLIC_PRIMARY_COLOR || "#1a73e8",
-    secondaryColor: process.env.NEXT_PUBLIC_SECONDARY_COLOR || "#8c6bff",
-    fontFamily: "\"Vazirmatn\", \"Inter\", system-ui, sans-serif"
+    primaryColor: process.env.NEXT_PUBLIC_PRIMARY_COLOR || DEFAULT_INLINE_THEME_VALUES.primaryColor,
+    secondaryColor: process.env.NEXT_PUBLIC_SECONDARY_COLOR || DEFAULT_INLINE_THEME_VALUES.secondaryColor,
+    backgroundTint: DEFAULT_INLINE_THEME_VALUES.backgroundTint,
+    fontFamily: DEFAULT_INLINE_THEME_VALUES.fontFamily,
+    headingFontFamily: DEFAULT_INLINE_THEME_VALUES.headingFontFamily,
+    buttonRadius: DEFAULT_INLINE_THEME_VALUES.buttonRadius,
+    cardRadius: DEFAULT_INLINE_THEME_VALUES.cardRadius,
+    cardShadow: DEFAULT_INLINE_THEME_VALUES.cardShadow,
+    sectionDensity: DEFAULT_INLINE_THEME_VALUES.sectionDensity,
+    buttonStyle: DEFAULT_INLINE_THEME_VALUES.buttonStyle
   },
   trustBadges: ["تحویل دیجیتال", "پشتیبانی فارسی", "قیمت‌گذاری شفاف", "سفارش قابل پیگیری"],
   navigation: [
