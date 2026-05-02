@@ -19,8 +19,12 @@ import { FontPicker } from "@/components/admin/font-picker";
 import { CloudinaryImageField } from "@/components/admin/cloudinary-image-field";
 import {
   DEFAULT_HOMEPAGE_LAYOUT_SETTINGS,
+  DEFAULT_HOMEPAGE_CUSTOM_BLOCK,
   DEFAULT_INLINE_THEME_VALUES,
-  HOMEPAGE_FONT_REGISTRY,
+  HOMEPAGE_CUSTOM_BLOCK_ALIGNS,
+  HOMEPAGE_CUSTOM_BLOCK_MAX_COUNT,
+  HOMEPAGE_CUSTOM_BLOCK_PLACEMENTS,
+  HOMEPAGE_CUSTOM_BLOCK_WIDTHS,
   HOMEPAGE_LAYOUT_PRESETS,
   INLINE_THEME_BUTTON_RADIUS_OPTIONS,
   INLINE_THEME_BUTTON_STYLE_OPTIONS,
@@ -29,6 +33,8 @@ import {
   INLINE_THEME_COLOR_PRESETS,
   INLINE_THEME_DENSITY_OPTIONS,
   buildInlineThemeStyleCss,
+  getHomepageCustomBlockClassNames,
+  getHomepageCustomBlockStyleCss,
   getHomepageLayoutClassNames,
   getHomepageFieldStyleCss,
   getHomepageLayoutStyleCss,
@@ -40,6 +46,10 @@ import {
   splitTrustPoints,
   type HomepageFieldStyle,
   type HomepageFieldStyles,
+  type HomepageCustomBlock,
+  type HomepageCustomBlockAlign,
+  type HomepageCustomBlockPlacement,
+  type HomepageCustomBlockWidth,
   type HomepageLayoutDensity,
   type HomepageLayoutSettings,
   type InlineHomepageHrefField,
@@ -51,11 +61,18 @@ import {
 } from "@/lib/settings/inline-homepage";
 
 type EditableElement = "span" | "p" | "strong" | "small" | "h2" | "div";
-type InlineEditorPanel = "theme" | "sections" | "layout" | null;
+type InlineEditorPanel = "theme" | "sections" | "layout" | "blocks" | null;
 type InlineEditorToast = {
   id: number;
   tone: "success" | "error" | "info";
   message: string;
+};
+
+type InlineEditorErrorResponse = {
+  message?: string;
+  fieldErrors?: Array<{
+    message?: string;
+  }>;
 };
 
 type InlineEditorContextValue = {
@@ -69,8 +86,10 @@ type InlineEditorContextValue = {
   theme: InlineThemeValues;
   resolvedTheme: InlineThemeValues;
   fieldStyles: HomepageFieldStyles;
+  customBlocks: HomepageCustomBlock[];
   layoutSettings: HomepageLayoutSettings;
   activeStyleField: InlineHomepageTextField | null;
+  activeCustomBlockId: string | null;
   startEditing: () => void;
   cancelEditing: () => void;
   saveChanges: () => void;
@@ -82,6 +101,12 @@ type InlineEditorContextValue = {
   ) => void;
   updateHomepageFieldStyle: (field: InlineHomepageTextField, style: HomepageFieldStyle) => void;
   resetHomepageFieldStyle: (field: InlineHomepageTextField) => void;
+  addCustomBlock: () => void;
+  updateCustomBlock: (id: string, updates: Partial<HomepageCustomBlock>) => void;
+  duplicateCustomBlock: (id: string) => void;
+  deleteCustomBlock: (id: string) => void;
+  moveCustomBlock: (id: string, direction: "up" | "down") => void;
+  selectCustomBlock: (id: string) => void;
   updateLayoutSettings: (next: HomepageLayoutSettings | ((current: HomepageLayoutSettings) => HomepageLayoutSettings)) => void;
   resetLayoutSettings: () => void;
   resetThemeToDefaults: () => void;
@@ -103,12 +128,14 @@ function areEditorValuesEqual(
     homepage: InlineHomepageValues;
     theme: InlineThemeValues;
     fieldStyles: HomepageFieldStyles;
+    customBlocks: HomepageCustomBlock[];
     layoutSettings: HomepageLayoutSettings;
   },
   right: {
     homepage: InlineHomepageValues;
     theme: InlineThemeValues;
     fieldStyles: HomepageFieldStyles;
+    customBlocks: HomepageCustomBlock[];
     layoutSettings: HomepageLayoutSettings;
   }
 ) {
@@ -118,6 +145,36 @@ function areEditorValuesEqual(
 function getAllowedWeightsForStyle(style: HomepageFieldStyle | undefined) {
   const font = getHomepageFontOption(style?.fontKey);
   return font?.allowedWeights || ["400", "700"];
+}
+
+function createCustomBlockId() {
+  const randomPart =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID().replace(/-/g, "").slice(0, 12)
+      : `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+
+  return `block_${randomPart}`;
+}
+
+function sortCustomBlocks(blocks: HomepageCustomBlock[]) {
+  return [...blocks].sort((left, right) => left.sortOrder - right.sortOrder || left.id.localeCompare(right.id));
+}
+
+function resequenceCustomBlocks(blocks: HomepageCustomBlock[]) {
+  return sortCustomBlocks(blocks).map((block, index) => ({
+    ...block,
+    sortOrder: (index + 1) * 10
+  }));
+}
+
+async function readSaveErrorMessage(response: Response) {
+  try {
+    const data = (await response.json()) as InlineEditorErrorResponse;
+    const fieldMessage = data.fieldErrors?.find((item) => item.message)?.message;
+    return fieldMessage || data.message || "ذخیره انجام نشد. مقدارهای واردشده را بررسی کن.";
+  } catch {
+    return "ذخیره انجام نشد. مقدارهای واردشده را بررسی کن.";
+  }
 }
 
 function useInlineEditor() {
@@ -135,35 +192,41 @@ export function HomepageInlineEditor({
   initialHomepage,
   initialTheme,
   initialFieldStyles,
+  initialCustomBlocks,
   initialLayoutSettings
 }: {
   children: ReactNode;
   initialHomepage: InlineHomepageValues;
   initialTheme: InlineThemeValues;
   initialFieldStyles: HomepageFieldStyles;
+  initialCustomBlocks: HomepageCustomBlock[];
   initialLayoutSettings: HomepageLayoutSettings;
 }) {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [homepage, setHomepage] = useState(initialHomepage);
   const [fieldStyles, setFieldStyles] = useState(initialFieldStyles);
+  const [customBlocks, setCustomBlocks] = useState(() => resequenceCustomBlocks(initialCustomBlocks));
   const [layoutSettings, setLayoutSettings] = useState(initialLayoutSettings);
   const [activeStyleField, setActiveStyleField] = useState<InlineHomepageTextField | null>(null);
+  const [activeCustomBlockId, setActiveCustomBlockId] = useState<string | null>(null);
   const [theme, setTheme] = useState(initialTheme);
   const [baseline, setBaseline] = useState({
     homepage: initialHomepage,
     fieldStyles: initialFieldStyles,
+    customBlocks: resequenceCustomBlocks(initialCustomBlocks),
     layoutSettings: initialLayoutSettings,
     theme: initialTheme
   });
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [activePanel, setActivePanel] = useState<InlineEditorPanel>(null);
   const [toasts, setToasts] = useState<InlineEditorToast[]>([]);
+  const [saveErrorMessage, setSaveErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const isSaving = saveState === "saving" || isPending;
   const hasUnsavedChanges = useMemo(
-    () => !areEditorValuesEqual({ homepage, theme, fieldStyles, layoutSettings }, baseline),
-    [baseline, fieldStyles, homepage, layoutSettings, theme]
+    () => !areEditorValuesEqual({ homepage, theme, fieldStyles, customBlocks, layoutSettings }, baseline),
+    [baseline, customBlocks, fieldStyles, homepage, layoutSettings, theme]
   );
   const resolvedTheme = useMemo(() => normalizeInlineThemeValues(theme, baseline.theme), [baseline.theme, theme]);
 
@@ -185,6 +248,7 @@ export function HomepageInlineEditor({
 
   const startEditing = useCallback(() => {
     setSaveState("idle");
+    setSaveErrorMessage(null);
     setActivePanel(null);
     setIsEditing(true);
     showToast("info", "حالت ویرایش فعال شد.");
@@ -197,11 +261,14 @@ export function HomepageInlineEditor({
 
     setHomepage(baseline.homepage);
     setFieldStyles(baseline.fieldStyles);
+    setCustomBlocks(baseline.customBlocks);
     setLayoutSettings(baseline.layoutSettings);
     setTheme(baseline.theme);
     setSaveState("idle");
+    setSaveErrorMessage(null);
     setActivePanel(null);
     setActiveStyleField(null);
+    setActiveCustomBlockId(null);
     setIsEditing(false);
     showToast("info", "تغییرات کنار گذاشته شد.");
   }, [baseline, hasUnsavedChanges, showToast]);
@@ -217,6 +284,7 @@ export function HomepageInlineEditor({
     }
 
     setSaveState("saving");
+    setSaveErrorMessage(null);
     startTransition(() => {
       void (async () => {
         const response = await fetch("/api/admin/homepage-inline", {
@@ -228,29 +296,35 @@ export function HomepageInlineEditor({
             homepage,
             theme,
             fieldStyles,
+            customBlocks,
             layoutSettings
           })
         });
 
         if (!response.ok) {
+          const validationMessage = await readSaveErrorMessage(response);
+
           setSaveState("error");
-          showToast("error", "ذخیره انجام نشد. مقدار لینک، رنگ یا فونت را بررسی کن.");
+          setSaveErrorMessage(validationMessage);
+          showToast("error", validationMessage);
           return;
         }
 
-        setBaseline({ homepage, theme, fieldStyles, layoutSettings });
+        setBaseline({ homepage, theme, fieldStyles, customBlocks, layoutSettings });
         setSaveState("saved");
         setActivePanel(null);
         setActiveStyleField(null);
+        setActiveCustomBlockId(null);
         setIsEditing(false);
         showToast("success", "تغییرات صفحه ذخیره شد.");
         router.refresh();
       })().catch(() => {
         setSaveState("error");
+        setSaveErrorMessage("ارتباط با سرور برقرار نشد. دوباره تلاش کن.");
         showToast("error", "ارتباط با سرور برقرار نشد. دوباره تلاش کن.");
       });
     });
-  }, [fieldStyles, hasUnsavedChanges, homepage, isEditing, isSaving, layoutSettings, router, showToast, theme]);
+  }, [customBlocks, fieldStyles, hasUnsavedChanges, homepage, isEditing, isSaving, layoutSettings, router, showToast, theme]);
 
   useEffect(() => {
     if (!isEditing || !hasUnsavedChanges) {
@@ -289,19 +363,22 @@ export function HomepageInlineEditor({
       hasUnsavedChanges,
       activePanel,
       statusMessage: saveState === "saved" ? "ذخیره شد" : null,
-      errorMessage: saveState === "error" ? "ذخیره انجام نشد. مقدار لینک، رنگ یا فونت را بررسی کن." : null,
+      errorMessage: saveState === "error" ? saveErrorMessage || "ذخیره انجام نشد. مقدارهای واردشده را بررسی کن." : null,
       homepage,
       theme,
       resolvedTheme,
       fieldStyles,
+      customBlocks,
       layoutSettings,
       activeStyleField,
+      activeCustomBlockId,
       startEditing,
       cancelEditing,
       saveChanges,
       setActivePanel,
       selectStyleField(field) {
         setActiveStyleField(field);
+        setActiveCustomBlockId(null);
       },
       updateHomepageField(field, nextValue) {
         setHomepage((current) => ({
@@ -309,6 +386,7 @@ export function HomepageInlineEditor({
           [field]: nextValue
         }));
         setSaveState("idle");
+        setSaveErrorMessage(null);
       },
       updateHomepageFieldStyle(field, nextStyle) {
         setFieldStyles((current) => {
@@ -332,6 +410,7 @@ export function HomepageInlineEditor({
           };
         });
         setSaveState("idle");
+        setSaveErrorMessage(null);
       },
       resetHomepageFieldStyle(field) {
         setFieldStyles((current) => {
@@ -339,18 +418,111 @@ export function HomepageInlineEditor({
           return rest;
         });
         setSaveState("idle");
+        setSaveErrorMessage(null);
+      },
+      addCustomBlock() {
+        setCustomBlocks((current) => {
+          if (current.length >= HOMEPAGE_CUSTOM_BLOCK_MAX_COUNT) {
+            showToast("error", "Ø­Ø¯Ø§Ú©Ø«Ø± Û²Û° Ø¨Ø§Ú©Ø³ Ø³ÙØ§Ø±Ø´ÛŒ Ù…ÛŒâ€ŒØªÙˆØ§Ù†ÛŒ Ø¯Ø§Ø´ØªÙ‡ Ø¨Ø§Ø´ÛŒ.");
+            return current;
+          }
+
+          const nextBlock: HomepageCustomBlock = {
+            ...DEFAULT_HOMEPAGE_CUSTOM_BLOCK,
+            id: createCustomBlockId(),
+            sortOrder: (current.length + 1) * 10
+          };
+
+          setActiveCustomBlockId(nextBlock.id);
+          setActivePanel("blocks");
+          setSaveState("idle");
+          setSaveErrorMessage(null);
+          return resequenceCustomBlocks([...current, nextBlock]);
+        });
+      },
+      updateCustomBlock(id, updates) {
+        setCustomBlocks((current) =>
+          resequenceCustomBlocks(current.map((block) => (block.id === id ? { ...block, ...updates } : block)))
+        );
+        setActiveCustomBlockId(id);
+        setSaveState("idle");
+        setSaveErrorMessage(null);
+      },
+      duplicateCustomBlock(id) {
+        setCustomBlocks((current) => {
+          if (current.length >= HOMEPAGE_CUSTOM_BLOCK_MAX_COUNT) {
+            showToast("error", "Ø­Ø¯Ø§Ú©Ø«Ø± Û²Û° Ø¨Ø§Ú©Ø³ Ø³ÙØ§Ø±Ø´ÛŒ Ù…ÛŒâ€ŒØªÙˆØ§Ù†ÛŒ Ø¯Ø§Ø´ØªÙ‡ Ø¨Ø§Ø´ÛŒ.");
+            return current;
+          }
+
+          const source = current.find((block) => block.id === id);
+
+          if (!source) {
+            return current;
+          }
+
+          const nextBlock = {
+            ...source,
+            id: createCustomBlockId(),
+            title: `${source.title} Ú©Ù¾ÛŒ`,
+            sortOrder: source.sortOrder + 1
+          };
+
+          setActiveCustomBlockId(nextBlock.id);
+          setActivePanel("blocks");
+          setSaveState("idle");
+          setSaveErrorMessage(null);
+          return resequenceCustomBlocks([...current, nextBlock]);
+        });
+      },
+      deleteCustomBlock(id) {
+        if (!window.confirm("Ø§ÛŒÙ† Ø¨Ø§Ú©Ø³ Ø­Ø°Ù Ø´ÙˆØ¯ØŸ")) {
+          return;
+        }
+
+        setCustomBlocks((current) => resequenceCustomBlocks(current.filter((block) => block.id !== id)));
+        setActiveCustomBlockId((current) => (current === id ? null : current));
+        setSaveState("idle");
+        setSaveErrorMessage(null);
+      },
+      moveCustomBlock(id, direction) {
+        setCustomBlocks((current) => {
+          const sorted = sortCustomBlocks(current);
+          const index = sorted.findIndex((block) => block.id === id);
+          const nextIndex = direction === "up" ? index - 1 : index + 1;
+
+          if (index < 0 || nextIndex < 0 || nextIndex >= sorted.length) {
+            return current;
+          }
+
+          const nextBlocks = [...sorted];
+          const [block] = nextBlocks.splice(index, 1);
+          nextBlocks.splice(nextIndex, 0, block);
+          return resequenceCustomBlocks(nextBlocks);
+        });
+        setActiveCustomBlockId(id);
+        setSaveState("idle");
+        setSaveErrorMessage(null);
+      },
+      selectCustomBlock(id) {
+        setActiveCustomBlockId(id);
+        setActivePanel("blocks");
+        setActiveStyleField(null);
       },
       updateLayoutSettings(next) {
         setLayoutSettings((current) => (typeof next === "function" ? next(current) : next));
         setSaveState("idle");
+        setSaveErrorMessage(null);
       },
       resetLayoutSettings() {
         setLayoutSettings(DEFAULT_HOMEPAGE_LAYOUT_SETTINGS);
         setSaveState("idle");
+        setSaveErrorMessage(null);
       },
       resetThemeToDefaults() {
         setTheme({ ...DEFAULT_INLINE_THEME_VALUES });
         setSaveState("idle");
+        setSaveErrorMessage(null);
       },
       updateThemeField(field, nextValue) {
         setTheme((current) => ({
@@ -358,12 +530,15 @@ export function HomepageInlineEditor({
           [field]: nextValue
         }));
         setSaveState("idle");
+        setSaveErrorMessage(null);
       }
     }),
     [
       activePanel,
+      activeCustomBlockId,
       activeStyleField,
       cancelEditing,
+      customBlocks,
       fieldStyles,
       hasUnsavedChanges,
       homepage,
@@ -372,7 +547,9 @@ export function HomepageInlineEditor({
       layoutSettings,
       resolvedTheme,
       saveChanges,
+      saveErrorMessage,
       saveState,
+      showToast,
       startEditing,
       theme
     ]
@@ -389,6 +566,7 @@ export function HomepageInlineEditor({
         <ThemeQuickPanel />
         <LayoutQuickPanel />
         <SectionsQuickPanel />
+        <BlocksQuickPanel />
         <FieldStylePanel />
         <InlineEditorToasts toasts={toasts} />
       </div>
@@ -559,6 +737,152 @@ export function InlineActionPreview({
     <Link className={className} href={href} prefetch={false} style={style}>
       {buttonLabel}
     </Link>
+  );
+}
+
+function CustomBlockAction({ href, label, accentColor }: { href: string; label: string; accentColor: string }) {
+  if (!href || !label.trim()) {
+    return null;
+  }
+
+  const style = { "--custom-block-accent": accentColor } as CSSProperties;
+
+  if (isExternalHref(href)) {
+    return (
+      <a className="custom-homepage-block-cta" href={href} target="_blank" rel="noreferrer" style={style}>
+        {label}
+      </a>
+    );
+  }
+
+  return (
+    <Link className="custom-homepage-block-cta" href={href} prefetch={false} style={style}>
+      {label}
+    </Link>
+  );
+}
+
+function CustomHomepageBlockCard({ block }: { block: HomepageCustomBlock }) {
+  return (
+    <article
+      className={cx(
+        "surface custom-homepage-block",
+        getHomepageCustomBlockClassNames(block)
+      )}
+      style={getHomepageCustomBlockStyleCss(block)}
+    >
+      <span className="custom-homepage-block-accent" aria-hidden="true" />
+      <div className="custom-homepage-block-copy">
+        <h2 dir="auto">{block.title || "عنوان دلخواه"}</h2>
+        {block.body ? <p dir="auto">{block.body}</p> : null}
+      </div>
+      <CustomBlockAction href={block.href} label={block.ctaText} accentColor={block.accentColor} />
+    </article>
+  );
+}
+
+function EditableCustomHomepageBlockCard({ block }: { block: HomepageCustomBlock }) {
+  const editor = useInlineEditor();
+  const isSelected = editor.activeCustomBlockId === block.id;
+
+  return (
+    <article
+      className={cx(
+        "surface custom-homepage-block",
+        getHomepageCustomBlockClassNames(block),
+        "is-editing",
+        isSelected && "is-selected",
+        !block.isVisible && "is-hidden"
+      )}
+      style={getHomepageCustomBlockStyleCss(block)}
+      onClick={() => editor.selectCustomBlock(block.id)}
+      onFocus={() => editor.selectCustomBlock(block.id)}
+      tabIndex={0}
+    >
+      <div className="custom-homepage-block-controls" onClick={(event) => event.stopPropagation()}>
+        <span>{block.isVisible ? "نمایش" : "پنهان"}</span>
+        <button type="button" onClick={() => editor.selectCustomBlock(block.id)}>
+          ویرایش
+        </button>
+        <button type="button" onClick={() => editor.updateCustomBlock(block.id, { isVisible: !block.isVisible })}>
+          {block.isVisible ? "پنهان" : "نمایش"}
+        </button>
+        <button type="button" onClick={() => editor.moveCustomBlock(block.id, "up")}>
+          بالا
+        </button>
+        <button type="button" onClick={() => editor.moveCustomBlock(block.id, "down")}>
+          پایین
+        </button>
+      </div>
+      <span className="custom-homepage-block-accent" aria-hidden="true" />
+      <div className="custom-homepage-block-copy">
+        <h2 dir="auto">{block.title || "عنوان دلخواه"}</h2>
+        {block.body ? <p dir="auto">{block.body}</p> : null}
+      </div>
+      <CustomBlockAction href={block.href} label={block.ctaText} accentColor={block.accentColor} />
+    </article>
+  );
+}
+
+export function HomepageCustomBlocks({
+  blocks,
+  placement,
+  canInlineEdit = false
+}: {
+  blocks: HomepageCustomBlock[];
+  placement: HomepageCustomBlockPlacement;
+  canInlineEdit?: boolean;
+}) {
+  if (canInlineEdit) {
+    return <EditableCustomBlocksPlacement placement={placement} />;
+  }
+
+  const visibleBlocks = sortCustomBlocks(blocks).filter((block) => block.placement === placement && block.isVisible);
+
+  if (visibleBlocks.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="section custom-homepage-block-section">
+      <div className="container custom-homepage-block-stack">
+        {visibleBlocks.map((block) => (
+          <CustomHomepageBlockCard key={block.id} block={block} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function EditableCustomBlocksPlacement({ placement }: { placement: HomepageCustomBlockPlacement }) {
+  const editor = useInlineEditor();
+  const blocks = sortCustomBlocks(editor.customBlocks).filter((block) => block.placement === placement);
+
+  if (blocks.length === 0 && !editor.isEditing) {
+    return null;
+  }
+
+  if (blocks.length === 0 && editor.isEditing) {
+    return (
+      <section className="section custom-homepage-block-section custom-homepage-block-empty-section">
+        <div className="container">
+          <button type="button" className="surface custom-homepage-empty-card" onClick={editor.addCustomBlock}>
+            <strong>هنوز باکس سفارشی اضافه نشده است</strong>
+            <span>افزودن باکس متن</span>
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="section custom-homepage-block-section">
+      <div className="container custom-homepage-block-stack">
+        {blocks.map((block) => (
+          <EditableCustomHomepageBlockCard key={block.id} block={block} />
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -1021,6 +1345,14 @@ function EditModeToolbar() {
           aria-pressed={editor.activePanel === "sections"}
         >
           سکشن‌ها
+        </button>
+        <button
+          className={cx("btn", editor.activePanel === "blocks" ? "btn-primary" : "btn-secondary")}
+          type="button"
+          onClick={() => editor.setActivePanel(editor.activePanel === "blocks" ? null : "blocks")}
+          aria-pressed={editor.activePanel === "blocks"}
+        >
+          Ø¨Ø§Ú©Ø³â€ŒÙ‡Ø§
         </button>
         <button className="btn btn-primary" type="button" onClick={editor.saveChanges} disabled={editor.isSaving}>
           {editor.isSaving ? "در حال ذخیره..." : "ذخیره"}
@@ -1576,6 +1908,224 @@ function SectionsQuickPanel() {
           onChange={(checked) => editor.updateHomepageField("showAnnouncement", checked)}
         />
       </div>
+    </aside>
+  );
+}
+
+const CUSTOM_BLOCK_PLACEMENT_LABELS: Record<HomepageCustomBlockPlacement, string> = {
+  afterHero: "بعد از هیرو",
+  beforeProducts: "قبل از محصولات",
+  bottom: "پایین صفحه"
+};
+
+const CUSTOM_BLOCK_WIDTH_LABELS: Record<HomepageCustomBlockWidth, string> = {
+  small: "کوچک",
+  normal: "معمولی",
+  wide: "عریض"
+};
+
+const CUSTOM_BLOCK_ALIGN_LABELS: Record<HomepageCustomBlockAlign, string> = {
+  start: "راست‌چین",
+  center: "وسط"
+};
+
+function BlocksQuickPanel() {
+  const editor = useInlineEditor();
+
+  if (!editor.isEditing || editor.activePanel !== "blocks") {
+    return null;
+  }
+
+  const blocks = sortCustomBlocks(editor.customBlocks);
+  const activeBlock =
+    blocks.find((block) => block.id === editor.activeCustomBlockId) || blocks[0] || null;
+
+  function updateActiveBlock(updates: Partial<HomepageCustomBlock>) {
+    if (!activeBlock) {
+      return;
+    }
+
+    editor.updateCustomBlock(activeBlock.id, updates);
+  }
+
+  return (
+    <aside className="inline-theme-panel inline-blocks-panel" aria-label="مدیریت باکس‌های سفارشی">
+      <div className="inline-theme-panel-header">
+        <strong>باکس‌های سفارشی</strong>
+        <span>باکس‌های متن را اضافه، مرتب و بدون CSS دلخواه تنظیم کن.</span>
+      </div>
+
+      <button className="btn btn-primary" type="button" onClick={editor.addCustomBlock} disabled={blocks.length >= HOMEPAGE_CUSTOM_BLOCK_MAX_COUNT}>
+        افزودن باکس متن
+      </button>
+
+      {blocks.length === 0 ? (
+        <div className="inline-block-empty-state">هنوز باکس سفارشی اضافه نشده است</div>
+      ) : (
+        <>
+          <div className="inline-block-list">
+            {blocks.map((block) => (
+              <button
+                type="button"
+                key={block.id}
+                className={cx("inline-block-list-item", activeBlock?.id === block.id && "is-active")}
+                onClick={() => editor.selectCustomBlock(block.id)}
+              >
+                <span>
+                  <strong>{block.title || "باکس بدون عنوان"}</strong>
+                  <small>{CUSTOM_BLOCK_PLACEMENT_LABELS[block.placement]} · {block.isVisible ? "نمایش" : "پنهان"}</small>
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {activeBlock ? (
+            <div className="inline-block-editor-form">
+              <label className="inline-theme-field">
+                <span>عنوان</span>
+                <input
+                  dir="auto"
+                  value={activeBlock.title}
+                  maxLength={140}
+                  onChange={(event) => updateActiveBlock({ title: event.target.value })}
+                />
+              </label>
+
+              <label className="inline-theme-field">
+                <span>متن</span>
+                <textarea
+                  dir="auto"
+                  rows={4}
+                  value={activeBlock.body}
+                  maxLength={900}
+                  onChange={(event) => updateActiveBlock({ body: event.target.value })}
+                />
+              </label>
+
+              <div className="inline-theme-row">
+                <label className="inline-theme-field">
+                  <span>متن دکمه</span>
+                  <input
+                    dir="auto"
+                    value={activeBlock.ctaText}
+                    maxLength={80}
+                    onChange={(event) => updateActiveBlock({ ctaText: event.target.value })}
+                  />
+                </label>
+                <label className="inline-theme-field">
+                  <span>لینک دکمه</span>
+                  <input
+                    dir="ltr"
+                    value={activeBlock.href}
+                    placeholder="/products"
+                    onChange={(event) => updateActiveBlock({ href: event.target.value })}
+                  />
+                </label>
+              </div>
+
+              <label className="inline-theme-field">
+                <span>فونت</span>
+                <FontPicker
+                  value={activeBlock.fontKey}
+                  placeholder="وزیرمتن"
+                  ariaLabel="انتخاب فونت باکس سفارشی"
+                  onChange={(value) => updateActiveBlock({ fontKey: (value || DEFAULT_HOMEPAGE_CUSTOM_BLOCK.fontKey) as HomepageCustomBlock["fontKey"] })}
+                />
+              </label>
+
+              <ThemeColorField
+                label="رنگ متن"
+                value={activeBlock.textColor}
+                fallback={DEFAULT_HOMEPAGE_CUSTOM_BLOCK.textColor}
+                placeholder="#172033"
+                onChange={(value) => updateActiveBlock({ textColor: value })}
+              />
+              <ThemeColorField
+                label="رنگ پس‌زمینه"
+                value={activeBlock.backgroundColor}
+                fallback={DEFAULT_HOMEPAGE_CUSTOM_BLOCK.backgroundColor}
+                placeholder="#ffffff"
+                onChange={(value) => updateActiveBlock({ backgroundColor: value })}
+              />
+              <ThemeColorField
+                label="رنگ تاکید"
+                value={activeBlock.accentColor}
+                fallback={DEFAULT_HOMEPAGE_CUSTOM_BLOCK.accentColor}
+                placeholder="#1a73e8"
+                onChange={(value) => updateActiveBlock({ accentColor: value })}
+              />
+
+              <RangeControl
+                label="گردی گوشه"
+                value={activeBlock.radius}
+                min={8}
+                max={40}
+                step={1}
+                suffix="px"
+                onChange={(radius) => updateActiveBlock({ radius })}
+              />
+
+              <label className="inline-theme-field">
+                <span>عرض</span>
+                <select
+                  value={activeBlock.width}
+                  onChange={(event) => updateActiveBlock({ width: event.target.value as HomepageCustomBlockWidth })}
+                >
+                  {HOMEPAGE_CUSTOM_BLOCK_WIDTHS.map((width) => (
+                    <option key={width} value={width}>{CUSTOM_BLOCK_WIDTH_LABELS[width]}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="inline-theme-field">
+                <span>چینش متن</span>
+                <select
+                  value={activeBlock.align}
+                  onChange={(event) => updateActiveBlock({ align: event.target.value as HomepageCustomBlockAlign })}
+                >
+                  {HOMEPAGE_CUSTOM_BLOCK_ALIGNS.map((align) => (
+                    <option key={align} value={align}>{CUSTOM_BLOCK_ALIGN_LABELS[align]}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="inline-theme-field">
+                <span>جایگاه</span>
+                <select
+                  value={activeBlock.placement}
+                  onChange={(event) => updateActiveBlock({ placement: event.target.value as HomepageCustomBlockPlacement })}
+                >
+                  {HOMEPAGE_CUSTOM_BLOCK_PLACEMENTS.map((placement) => (
+                    <option key={placement} value={placement}>{CUSTOM_BLOCK_PLACEMENT_LABELS[placement]}</option>
+                  ))}
+                </select>
+              </label>
+
+              <SectionToggle
+                label="نمایش باکس"
+                description="وقتی خاموش باشد فقط مدیر آن را در حالت ویرایش می‌بیند."
+                checked={activeBlock.isVisible}
+                onChange={(checked) => updateActiveBlock({ isVisible: checked })}
+              />
+
+              <div className="inline-block-actions">
+                <button type="button" className="btn btn-secondary" onClick={() => editor.moveCustomBlock(activeBlock.id, "up")}>
+                  بالا
+                </button>
+                <button type="button" className="btn btn-secondary" onClick={() => editor.moveCustomBlock(activeBlock.id, "down")}>
+                  پایین
+                </button>
+                <button type="button" className="btn btn-secondary" onClick={() => editor.duplicateCustomBlock(activeBlock.id)}>
+                  کپی
+                </button>
+                <button type="button" className="btn btn-ghost" onClick={() => editor.deleteCustomBlock(activeBlock.id)}>
+                  حذف
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </>
+      )}
     </aside>
   );
 }

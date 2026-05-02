@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { getSafeRedirectPath, getSession } from "@/lib/auth";
+import { getOptionalSession, getSafeRedirectPath } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "ورود",
@@ -115,7 +115,7 @@ export default async function LoginPage({
 }: {
   searchParams?: SearchParamsLike;
 }) {
-  const [session, params] = await Promise.all([getSession(), resolveSearchParams(searchParams)]);
+  const [session, params] = await Promise.all([getOptionalSession({ context: "/login" }), resolveSearchParams(searchParams)]);
   const redirectTo = getSafeRedirectPath(params.next || "/account");
   const isVerifyStep = params.step === "verify" && Boolean(params.identifier);
   const statusMessage = getErrorMessage(params.error, params.cooldown);

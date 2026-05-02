@@ -1,7 +1,9 @@
 import { randomBytes } from "node:crypto";
+import { Prisma } from "@prisma/client";
 import { cookies } from "next/headers";
 import type { NextResponse } from "next/server";
 import { dbSessions } from "@/lib/db";
+import { logServerEvent } from "@/lib/observability/logger";
 
 export const AUTH_COOKIE_NAME = "fumgpt_session";
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
@@ -33,6 +35,10 @@ export type AppSession = {
   authMode: string;
   createdAt: string;
   expiresAt: string;
+};
+
+type OptionalSessionOptions = {
+  context?: string;
 };
 
 export function getSafeRedirectPath(value: string | null, fallback = "/account") {
@@ -171,6 +177,46 @@ export async function getSession() {
     createdAt: user.createdAt.toISOString(),
     expiresAt: session.expiresAt.toISOString()
   } satisfies AppSession;
+}
+
+function isRecoverableSessionLookupError(error: unknown) {
+  if (error instanceof Prisma.PrismaClientInitializationError) {
+    return true;
+  }
+
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P1001") {
+    return true;
+  }
+
+  return error instanceof Error && error.message.includes("Can't reach database server");
+}
+
+export async function getOptionalSession(options?: OptionalSessionOptions) {
+  try {
+    return await getSession();
+  } catch (error) {
+    if (!isRecoverableSessionLookupError(error)) {
+      throw error;
+    }
+
+    // Use this only on public surfaces that can render for guests.
+    // Protected pages and admin/API mutations must keep using getSession()
+    // so real auth/storage failures still block access instead of being masked.
+    await logServerEvent({
+      level: "warn",
+      event: "auth.optional_session_lookup_failed",
+      message: "Optional session lookup failed; rendering public content without admin controls",
+      route: options?.context,
+      data: {
+        context: options?.context || "unknown"
+      },
+      error
+    });
+
+    // Public pages fail open for content, but fail closed for privilege checks.
+    // If the session cannot be verified, we return null so no admin-only UI is shown.
+    return null;
+  }
 }
 
 export function getRequestClientInfo(request: Request) {

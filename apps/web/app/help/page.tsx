@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { OperationalContentPage } from "@/components/operational-content-page";
-import { getSession } from "@/lib/auth";
+import { getOptionalSession } from "@/lib/auth";
 import { getStorefrontSettings } from "@/lib/content";
 import { helpPageSections, operationalFaqs, orderStatusGuide } from "@/lib/operations-content";
 import { buildPublicMetadata } from "@/lib/seo";
@@ -14,7 +14,7 @@ export const metadata: Metadata = buildPublicMetadata({
 });
 
 export default async function HelpPage() {
-  const [settings, session] = await Promise.all([getStorefrontSettings(), getSession()]);
+  const [settings, session] = await Promise.all([getStorefrontSettings(), getOptionalSession({ context: "/help" })]);
   const helpActions: Array<{
     href: string;
     label: string;

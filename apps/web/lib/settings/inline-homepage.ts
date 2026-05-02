@@ -371,6 +371,33 @@ export type InlineThemeValues = {
   buttonStyle: InlineThemeButtonStyle;
 };
 
+export const HOMEPAGE_CUSTOM_BLOCK_PLACEMENTS = ["afterHero", "beforeProducts", "bottom"] as const;
+export const HOMEPAGE_CUSTOM_BLOCK_WIDTHS = ["small", "normal", "wide"] as const;
+export const HOMEPAGE_CUSTOM_BLOCK_ALIGNS = ["start", "center"] as const;
+export const HOMEPAGE_CUSTOM_BLOCK_MAX_COUNT = 20;
+
+export type HomepageCustomBlockPlacement = (typeof HOMEPAGE_CUSTOM_BLOCK_PLACEMENTS)[number];
+export type HomepageCustomBlockWidth = (typeof HOMEPAGE_CUSTOM_BLOCK_WIDTHS)[number];
+export type HomepageCustomBlockAlign = (typeof HOMEPAGE_CUSTOM_BLOCK_ALIGNS)[number];
+export type HomepageCustomBlock = {
+  id: string;
+  type: "textCard";
+  title: string;
+  body: string;
+  href: string;
+  ctaText: string;
+  fontKey: HomepageFontKey;
+  textColor: string;
+  backgroundColor: string;
+  accentColor: string;
+  radius: number;
+  width: HomepageCustomBlockWidth;
+  align: HomepageCustomBlockAlign;
+  isVisible: boolean;
+  sortOrder: number;
+  placement: HomepageCustomBlockPlacement;
+};
+
 export const DEFAULT_INLINE_THEME_VALUES: InlineThemeValues = {
   primaryColor: "#1a73e8",
   secondaryColor: "#8c6bff",
@@ -382,6 +409,23 @@ export const DEFAULT_INLINE_THEME_VALUES: InlineThemeValues = {
   cardShadow: "medium",
   sectionDensity: "normal",
   buttonStyle: "filled"
+};
+
+export const DEFAULT_HOMEPAGE_CUSTOM_BLOCK: Omit<HomepageCustomBlock, "id" | "sortOrder"> = {
+  type: "textCard",
+  title: "عنوان دلخواه",
+  body: "متن کوتاه این باکس را اینجا بنویس.",
+  href: "",
+  ctaText: "",
+  fontKey: INLINE_FONT_DEFAULT_KEY,
+  textColor: "#172033",
+  backgroundColor: "#ffffff",
+  accentColor: "#1a73e8",
+  radius: 28,
+  width: "normal",
+  align: "start",
+  isVisible: true,
+  placement: "afterHero"
 };
 
 export const INLINE_THEME_FIELD_KEYS = [
@@ -653,6 +697,111 @@ function pickDensity(value: unknown, fallback: HomepageLayoutDensity): HomepageL
   return isHomepageLayoutDensity(value) ? value : fallback;
 }
 
+function pickCustomBlockPlacement(value: unknown): HomepageCustomBlockPlacement {
+  return HOMEPAGE_CUSTOM_BLOCK_PLACEMENTS.some((placement) => placement === value)
+    ? (value as HomepageCustomBlockPlacement)
+    : DEFAULT_HOMEPAGE_CUSTOM_BLOCK.placement;
+}
+
+function pickCustomBlockWidth(value: unknown): HomepageCustomBlockWidth {
+  return HOMEPAGE_CUSTOM_BLOCK_WIDTHS.some((width) => width === value)
+    ? (value as HomepageCustomBlockWidth)
+    : DEFAULT_HOMEPAGE_CUSTOM_BLOCK.width;
+}
+
+function pickCustomBlockAlign(value: unknown): HomepageCustomBlockAlign {
+  return HOMEPAGE_CUSTOM_BLOCK_ALIGNS.some((align) => align === value)
+    ? (value as HomepageCustomBlockAlign)
+    : DEFAULT_HOMEPAGE_CUSTOM_BLOCK.align;
+}
+
+function cleanCustomBlockText(value: unknown, fallback: string, maxLength: number) {
+  if (typeof value !== "string") {
+    return fallback;
+  }
+
+  return value.trim().slice(0, maxLength);
+}
+
+function cleanCustomBlockHref(value: unknown) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  const text = value.trim().slice(0, 500);
+  return text && isSafeInlineHref(text) ? text : "";
+}
+
+function cleanCustomBlockColor(value: unknown, fallback: string) {
+  if (typeof value !== "string") {
+    return fallback;
+  }
+
+  const text = value.trim();
+  return isHexColor(text) ? normalizeHex(text) : fallback;
+}
+
+function cleanCustomBlockRadius(value: unknown) {
+  return clampNumber(value, DEFAULT_HOMEPAGE_CUSTOM_BLOCK.radius, 8, 40);
+}
+
+export function isSafeHomepageCustomBlockId(value: string | null | undefined) {
+  return Boolean(value && /^block_[a-z0-9_-]{6,48}$/i.test(value));
+}
+
+export function normalizeHomepageCustomBlocks(value: unknown): HomepageCustomBlock[] {
+  if (value == null) {
+    return [];
+  }
+
+  const source = typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>).blocks : value;
+
+  if (!Array.isArray(source)) {
+    return [];
+  }
+
+  return source
+    .slice(0, HOMEPAGE_CUSTOM_BLOCK_MAX_COUNT)
+    .map((rawBlock, index): HomepageCustomBlock | null => {
+      if (typeof rawBlock !== "object" || !rawBlock || Array.isArray(rawBlock)) {
+        return null;
+      }
+
+      const block = rawBlock as Record<string, unknown>;
+      const id = typeof block.id === "string" && isSafeHomepageCustomBlockId(block.id) ? block.id : "";
+
+      if (!id || block.type !== "textCard") {
+        return null;
+      }
+
+      const fontKey =
+        typeof block.fontKey === "string" && isSafeHomepageFontKey(block.fontKey)
+          ? block.fontKey
+          : DEFAULT_HOMEPAGE_CUSTOM_BLOCK.fontKey;
+
+      return {
+        id,
+        type: "textCard",
+        title: cleanCustomBlockText(block.title, DEFAULT_HOMEPAGE_CUSTOM_BLOCK.title, 140),
+        body: cleanCustomBlockText(block.body, DEFAULT_HOMEPAGE_CUSTOM_BLOCK.body, 900),
+        href: cleanCustomBlockHref(block.href),
+        ctaText: cleanCustomBlockText(block.ctaText, "", 80),
+        fontKey,
+        textColor: cleanCustomBlockColor(block.textColor, DEFAULT_HOMEPAGE_CUSTOM_BLOCK.textColor),
+        backgroundColor: cleanCustomBlockColor(block.backgroundColor, DEFAULT_HOMEPAGE_CUSTOM_BLOCK.backgroundColor),
+        accentColor: cleanCustomBlockColor(block.accentColor, DEFAULT_HOMEPAGE_CUSTOM_BLOCK.accentColor),
+        radius: cleanCustomBlockRadius(block.radius),
+        width: pickCustomBlockWidth(block.width),
+        align: pickCustomBlockAlign(block.align),
+        isVisible: typeof block.isVisible === "boolean" ? block.isVisible : true,
+        sortOrder: clampNumber(block.sortOrder, (index + 1) * 10, -10000, 10000),
+        placement: pickCustomBlockPlacement(block.placement)
+      };
+    })
+    .filter((block): block is HomepageCustomBlock => Boolean(block))
+    .sort((left, right) => left.sortOrder - right.sortOrder || left.id.localeCompare(right.id));
+}
+
 export function normalizeHomepageLayoutSettings(value: unknown): HomepageLayoutSettings | null {
   if (value == null) {
     return DEFAULT_HOMEPAGE_LAYOUT_SETTINGS;
@@ -744,6 +893,26 @@ export function getHomepageLayoutClassNames(layout: HomepageLayoutSettings) {
     `homepage-layout-products-${layout.products.density}`,
     `homepage-layout-announcement-${layout.announcement.density}`
   ].join(" ");
+}
+
+export function getHomepageCustomBlockStyleCss(block: HomepageCustomBlock): CSSProperties {
+  const font = getHomepageFontOption(block.fontKey);
+
+  return {
+    "--custom-block-text": block.textColor,
+    "--custom-block-bg": block.backgroundColor,
+    "--custom-block-accent": block.accentColor,
+    "--custom-block-radius": `${block.radius}px`,
+    color: block.textColor,
+    backgroundColor: block.backgroundColor,
+    borderColor: `${block.accentColor}33`,
+    borderRadius: `${block.radius}px`,
+    ...(font ? { fontFamily: font.cssFontFamily } : {})
+  } as CSSProperties;
+}
+
+export function getHomepageCustomBlockClassNames(block: HomepageCustomBlock) {
+  return [`custom-homepage-block-width-${block.width}`, `custom-homepage-block-align-${block.align}`].join(" ");
 }
 
 function getCardShadowVariables(level: InlineThemeCardShadow) {

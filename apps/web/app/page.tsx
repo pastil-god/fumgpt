@@ -13,6 +13,7 @@ import {
   EditableSectionGroup,
   EditableText,
   EditableTrustPoints,
+  HomepageCustomBlocks,
   HomepageInlineEditor
 } from "@/components/admin/homepage-inline-editor";
 import {
@@ -23,16 +24,21 @@ import {
   getStoreNews,
   getStorefrontSettings
 } from "@/lib/content";
-import { getSession } from "@/lib/auth";
+import { getOptionalSession } from "@/lib/auth";
 import { buildPublicMetadata } from "@/lib/seo";
 import { isExternalHref } from "@/lib/site";
-import { getHomepageLayoutSettings, getHomepageStyleSettings } from "@/lib/settings/admin-settings";
+import {
+  getHomepageCustomBlocksSettings,
+  getHomepageLayoutSettings,
+  getHomepageStyleSettings
+} from "@/lib/settings/admin-settings";
 import {
   buildInlineThemeStyleCss,
   getHomepageFieldStyleCss,
   getHomepageLayoutClassNames,
   getHomepageLayoutStyleCss,
   type HomepageFieldStyles,
+  type HomepageCustomBlock,
   type InlineHomepageTextField,
   type InlineHomepageValues,
   type InlineThemeValues
@@ -134,6 +140,10 @@ function buildInlineThemeValues(settings: Awaited<ReturnType<typeof getStorefron
   return { ...settings.appearance };
 }
 
+function getCustomBlocksForPlacement(blocks: HomepageCustomBlock[], placement: HomepageCustomBlock["placement"]) {
+  return blocks.filter((block) => block.placement === placement);
+}
+
 function getFieldStyle(fieldStyles: HomepageFieldStyles, field: InlineHomepageTextField) {
   return getHomepageFieldStyleCss(fieldStyles[field]);
 }
@@ -148,6 +158,7 @@ export default async function HomePage() {
     storefrontSettings,
     session,
     homepageFieldStyles,
+    homepageCustomBlocks,
     homepageLayoutSettings
   ] =
     await Promise.all([
@@ -157,10 +168,13 @@ export default async function HomePage() {
       getHeroStats(),
       getHomePageContent(),
       getStorefrontSettings(),
-      getSession(),
+      getOptionalSession({ context: "/" }),
       getHomepageStyleSettings(),
+      getHomepageCustomBlocksSettings(),
       getHomepageLayoutSettings()
     ]);
+  // The homepage is public content, so we tolerate transient session lookup failures.
+  // Admin controls still fail closed because they only render for a verified super_admin session.
   const canInlineEdit = session?.role === "super_admin";
 
   const categorySection = (
@@ -476,6 +490,12 @@ export default async function HomePage() {
         fieldStyles={homepageFieldStyles}
       />
 
+      <HomepageCustomBlocks
+        blocks={getCustomBlocksForPlacement(homepageCustomBlocks, "afterHero")}
+        placement="afterHero"
+        canInlineEdit={canInlineEdit}
+      />
+
       {canInlineEdit ? (
         <EditableSectionFrame field="showCategorySection" label="دسته‌بندی‌ها">
           {categorySection}
@@ -483,6 +503,12 @@ export default async function HomePage() {
       ) : homePageContent.categorySection.isVisible ? (
         categorySection
       ) : null}
+
+      <HomepageCustomBlocks
+        blocks={getCustomBlocksForPlacement(homepageCustomBlocks, "beforeProducts")}
+        placement="beforeProducts"
+        canInlineEdit={canInlineEdit}
+      />
 
       {canInlineEdit ? (
         <EditableSectionFrame field="showFeaturedSection" label="محصولات منتخب">
@@ -515,6 +541,12 @@ export default async function HomePage() {
       ) : homePageContent.announcement.isVisible ? (
         announcementSection
       ) : null}
+
+      <HomepageCustomBlocks
+        blocks={getCustomBlocksForPlacement(homepageCustomBlocks, "bottom")}
+        placement="bottom"
+        canInlineEdit={canInlineEdit}
+      />
     </div>
   );
 
@@ -527,6 +559,7 @@ export default async function HomePage() {
       initialHomepage={buildInlineHomepageValues(homePageContent)}
       initialTheme={buildInlineThemeValues(storefrontSettings)}
       initialFieldStyles={homepageFieldStyles}
+      initialCustomBlocks={homepageCustomBlocks}
       initialLayoutSettings={homepageLayoutSettings}
     >
       {homepage}

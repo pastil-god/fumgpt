@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { AnalyticsPageView } from "@/components/analytics-page-view";
-import { getSession } from "@/lib/auth";
+import { getOptionalSession } from "@/lib/auth";
 import { getActiveCart } from "@/lib/cart";
 import { getCheckoutErrorMessage } from "@/lib/checkout";
 import { getPaymentProviderPresentation } from "@/lib/payment";
@@ -29,7 +29,7 @@ async function resolveSearchParams(searchParams: SearchParamsLike) {
   };
 }
 
-function getDefaultEmail(session: Awaited<ReturnType<typeof getSession>>) {
+function getDefaultEmail(session: Awaited<ReturnType<typeof getOptionalSession>>) {
   if (session?.email) {
     return session.email;
   }
@@ -37,7 +37,7 @@ function getDefaultEmail(session: Awaited<ReturnType<typeof getSession>>) {
   return session?.identifier.includes("@") ? session.identifier : "";
 }
 
-function getDefaultPhone(session: Awaited<ReturnType<typeof getSession>>) {
+function getDefaultPhone(session: Awaited<ReturnType<typeof getOptionalSession>>) {
   if (session?.phone) {
     return session.phone;
   }
@@ -51,7 +51,7 @@ export default async function CheckoutPage({
   searchParams?: SearchParamsLike;
 }) {
   const params = await resolveSearchParams(searchParams);
-  const [cart, session] = await Promise.all([getActiveCart(), getSession()]);
+  const [cart, session] = await Promise.all([getActiveCart(), getOptionalSession({ context: "/checkout" })]);
   const paymentProvider = getPaymentProviderPresentation();
   const errorMessage = getCheckoutErrorMessage(params.error);
 

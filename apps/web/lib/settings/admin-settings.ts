@@ -6,6 +6,7 @@ import { fallbackStorefrontSettings, type StorefrontSettings } from "@/lib/site"
 import {
   DEFAULT_INLINE_THEME_VALUES,
   getInlineFontKeyFallback,
+  normalizeHomepageCustomBlocks,
   normalizeHomepageLayoutSettings,
   normalizeHomepageFieldStyles,
   normalizeInlineThemeValues,
@@ -16,6 +17,7 @@ import {
   type InlineTextStyles,
   type HomepageLayoutSettings,
   type HomepageFieldStyles,
+  type HomepageCustomBlock,
   type InlineHomepageValues,
   type InlineThemeValues
 } from "@/lib/settings/inline-homepage";
@@ -161,6 +163,11 @@ export const getHomepageLayoutSettings = cache(async (): Promise<HomepageLayoutS
   return normalizeStoredHomepageLayoutSettings(settings?.homepageFieldStyles);
 });
 
+export const getHomepageCustomBlocksSettings = cache(async (): Promise<HomepageCustomBlock[]> => {
+  const settings = await getStoredHomepageSettings();
+  return normalizeHomepageCustomBlocks(settings?.homepageFieldStyles);
+});
+
 function normalizeStoredHomepageFieldStyles(value: unknown): HomepageFieldStyles {
   return normalizeHomepageFieldStyles(value) || {};
 }
@@ -169,11 +176,16 @@ function normalizeStoredHomepageLayoutSettings(value: unknown): HomepageLayoutSe
   return normalizeHomepageLayoutSettings(value) || normalizeHomepageLayoutSettings(null)!;
 }
 
-function serializeHomepageInlineDesignSettings(fieldStyles: HomepageFieldStyles, layout: HomepageLayoutSettings) {
+function serializeHomepageInlineDesignSettings(
+  fieldStyles: HomepageFieldStyles,
+  layout: HomepageLayoutSettings,
+  blocks: HomepageCustomBlock[]
+) {
   return JSON.parse(
     JSON.stringify({
       fields: fieldStyles,
-      layout
+      layout,
+      blocks
     })
   ) as Prisma.InputJsonValue;
 }
@@ -560,10 +572,12 @@ export async function saveInlineHomepageSettings(
   settings: InlineHomepageValues,
   updatedById: string,
   fieldStyles?: HomepageFieldStyles,
-  layoutSettings?: HomepageLayoutSettings
+  layoutSettings?: HomepageLayoutSettings,
+  customBlocks?: HomepageCustomBlock[]
 ) {
   const safeFieldStyles = fieldStyles || {};
   const safeLayoutSettings = layoutSettings || normalizeStoredHomepageLayoutSettings(null);
+  const safeCustomBlocks = customBlocks || [];
   const data = {
     heroEyebrow: cleanString(settings.heroEyebrow),
     heroStatusLabel: cleanString(settings.heroStatusLabel),
@@ -622,7 +636,7 @@ export async function saveInlineHomepageSettings(
     announcementCtaLabel: cleanString(settings.announcementCtaLabel),
     announcementCtaHref: cleanString(settings.announcementCtaHref),
     updatedById,
-    homepageFieldStyles: serializeHomepageInlineDesignSettings(safeFieldStyles, safeLayoutSettings)
+    homepageFieldStyles: serializeHomepageInlineDesignSettings(safeFieldStyles, safeLayoutSettings, safeCustomBlocks)
   };
 
   return prisma.homepageSetting.upsert({
