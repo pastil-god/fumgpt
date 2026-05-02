@@ -10,6 +10,42 @@ export type NavigationLink = {
   priority?: number;
 };
 
+export type HeaderLayoutSize = "compact" | "normal" | "large";
+export type HeaderContainerWidth = "normal" | "wide" | "full";
+
+export type HeaderDisplaySettings = {
+  showTopBar: boolean;
+  showTopBarText: boolean;
+  showTopBarHighlights: boolean;
+  showSupportPhone: boolean;
+  showSupportEmail: boolean;
+  showMainNavigation: boolean;
+  showHeaderActions: boolean;
+  showAccountButton: boolean;
+  showCartButton: boolean;
+  topBarSize: HeaderLayoutSize;
+  headerSize: HeaderLayoutSize;
+  headerContainerWidth: HeaderContainerWidth;
+};
+
+export const HEADER_LAYOUT_SIZE_OPTIONS = ["compact", "normal", "large"] as const;
+export const HEADER_CONTAINER_WIDTH_OPTIONS = ["normal", "wide", "full"] as const;
+
+export const DEFAULT_HEADER_DISPLAY_SETTINGS: HeaderDisplaySettings = {
+  showTopBar: true,
+  showTopBarText: true,
+  showTopBarHighlights: true,
+  showSupportPhone: true,
+  showSupportEmail: true,
+  showMainNavigation: true,
+  showHeaderActions: true,
+  showAccountButton: true,
+  showCartButton: true,
+  topBarSize: "normal",
+  headerSize: "normal",
+  headerContainerWidth: "normal"
+};
+
 export type StorefrontSettings = {
   brandName: string;
   siteTitle: string;
@@ -36,6 +72,7 @@ export type StorefrontSettings = {
     copyright: string;
   };
   appearance: InlineThemeValues;
+  header: HeaderDisplaySettings;
   trustBadges: string[];
   navigation: NavigationLink[];
 };
@@ -89,6 +126,7 @@ export const fallbackStorefrontSettings: StorefrontSettings = {
     sectionDensity: DEFAULT_INLINE_THEME_VALUES.sectionDensity,
     buttonStyle: DEFAULT_INLINE_THEME_VALUES.buttonStyle
   },
+  header: DEFAULT_HEADER_DISPLAY_SETTINGS,
   trustBadges: ["تحویل دیجیتال", "پشتیبانی فارسی", "قیمت‌گذاری شفاف", "سفارش قابل پیگیری"],
   navigation: [
     { label: "خانه", href: "/", location: "both", priority: 100 },

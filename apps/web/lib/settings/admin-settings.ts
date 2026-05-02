@@ -2,7 +2,16 @@ import { cache } from "react";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { homePageContent as fallbackHomePageContent, type HomePageContent } from "@/lib/mock-homepage";
-import { fallbackStorefrontSettings, type StorefrontSettings } from "@/lib/site";
+import {
+  DEFAULT_HEADER_DISPLAY_SETTINGS,
+  HEADER_CONTAINER_WIDTH_OPTIONS,
+  HEADER_LAYOUT_SIZE_OPTIONS,
+  fallbackStorefrontSettings,
+  type HeaderContainerWidth,
+  type HeaderDisplaySettings,
+  type HeaderLayoutSize,
+  type StorefrontSettings
+} from "@/lib/site";
 import {
   DEFAULT_INLINE_THEME_VALUES,
   getInlineFontKeyFallback,
@@ -81,6 +90,67 @@ function getAppearanceInput(
     },
     base
   );
+}
+
+function isHeaderLayoutSize(value: unknown): value is HeaderLayoutSize {
+  return typeof value === "string" && HEADER_LAYOUT_SIZE_OPTIONS.some((option) => option === value);
+}
+
+function isHeaderContainerWidth(value: unknown): value is HeaderContainerWidth {
+  return typeof value === "string" && HEADER_CONTAINER_WIDTH_OPTIONS.some((option) => option === value);
+}
+
+function pickBoolean(source: Record<string, unknown> | null | undefined, key: string, fallback: boolean) {
+  const value = source?.[key];
+  return typeof value === "boolean" ? value : fallback;
+}
+
+function pickHeaderLayoutSize(
+  source: Record<string, unknown> | null | undefined,
+  key: string,
+  fallback: HeaderLayoutSize
+) {
+  const value = source?.[key];
+  return isHeaderLayoutSize(value) ? value : fallback;
+}
+
+function pickHeaderContainerWidth(
+  source: Record<string, unknown> | null | undefined,
+  key: string,
+  fallback: HeaderContainerWidth
+) {
+  const value = source?.[key];
+  return isHeaderContainerWidth(value) ? value : fallback;
+}
+
+function cleanHeaderLayoutSize(value: FormDataEntryValue | string | null | undefined) {
+  const text = cleanString(value);
+  return isHeaderLayoutSize(text) ? text : DEFAULT_HEADER_DISPLAY_SETTINGS.topBarSize;
+}
+
+function cleanHeaderContainerWidth(value: FormDataEntryValue | string | null | undefined) {
+  const text = cleanString(value);
+  return isHeaderContainerWidth(text) ? text : DEFAULT_HEADER_DISPLAY_SETTINGS.headerContainerWidth;
+}
+
+export function normalizeHeaderDisplaySettings(
+  source: Record<string, unknown> | null | undefined,
+  base: HeaderDisplaySettings = DEFAULT_HEADER_DISPLAY_SETTINGS
+): HeaderDisplaySettings {
+  return {
+    showTopBar: pickBoolean(source, "showTopBar", base.showTopBar),
+    showTopBarText: pickBoolean(source, "showTopBarText", base.showTopBarText),
+    showTopBarHighlights: pickBoolean(source, "showTopBarHighlights", base.showTopBarHighlights),
+    showSupportPhone: pickBoolean(source, "showSupportPhone", base.showSupportPhone),
+    showSupportEmail: pickBoolean(source, "showSupportEmail", base.showSupportEmail),
+    showMainNavigation: pickBoolean(source, "showMainNavigation", base.showMainNavigation),
+    showHeaderActions: pickBoolean(source, "showHeaderActions", base.showHeaderActions),
+    showAccountButton: pickBoolean(source, "showAccountButton", base.showAccountButton),
+    showCartButton: pickBoolean(source, "showCartButton", base.showCartButton),
+    topBarSize: pickHeaderLayoutSize(source, "topBarSize", base.topBarSize),
+    headerSize: pickHeaderLayoutSize(source, "headerSize", base.headerSize),
+    headerContainerWidth: pickHeaderContainerWidth(source, "headerContainerWidth", base.headerContainerWidth)
+  };
 }
 
 function pickText(source: Record<string, unknown> | null | undefined, key: string, fallback: string) {
@@ -227,7 +297,8 @@ export function mergeStorefrontSettings(
       description: pickText(settings, "footerText", base.footer.description),
       copyright: base.footer.copyright
     },
-    appearance: getAppearanceInput(settings, base.appearance)
+    appearance: getAppearanceInput(settings, base.appearance),
+    header: normalizeHeaderDisplaySettings(settings, base.header)
   };
 }
 
@@ -324,6 +395,7 @@ export function mergeHomepageContent(
 
 export function getEditableSiteSettingsDefaults(settings: Awaited<ReturnType<typeof getStoredSiteSettings>>) {
   const merged = mergeStorefrontSettings(fallbackStorefrontSettings, settings);
+  const header = normalizeHeaderDisplaySettings(settings, merged.header);
 
   return {
     siteTitle: settings?.siteTitle || merged.brandName,
@@ -351,7 +423,19 @@ export function getEditableSiteSettingsDefaults(settings: Awaited<ReturnType<typ
     instagramUrl: settings?.instagramUrl || merged.socials.instagram,
     whatsappUrl: settings?.whatsappUrl || merged.socials.whatsapp,
     defaultSeoTitle: settings?.defaultSeoTitle || merged.siteTitle,
-    defaultSeoDescription: settings?.defaultSeoDescription || merged.siteDescription
+    defaultSeoDescription: settings?.defaultSeoDescription || merged.siteDescription,
+    showTopBar: header.showTopBar,
+    showTopBarText: header.showTopBarText,
+    showTopBarHighlights: header.showTopBarHighlights,
+    showSupportPhone: header.showSupportPhone,
+    showSupportEmail: header.showSupportEmail,
+    showMainNavigation: header.showMainNavigation,
+    showHeaderActions: header.showHeaderActions,
+    showAccountButton: header.showAccountButton,
+    showCartButton: header.showCartButton,
+    topBarSize: header.topBarSize,
+    headerSize: header.headerSize,
+    headerContainerWidth: header.headerContainerWidth
   };
 }
 
@@ -441,6 +525,18 @@ export async function saveSiteSettingsFromForm(formData: FormData, updatedById: 
     whatsappUrl: cleanSafeHref(formData.get("whatsappUrl")),
     defaultSeoTitle: cleanString(formData.get("defaultSeoTitle")),
     defaultSeoDescription: cleanString(formData.get("defaultSeoDescription")),
+    showTopBar: formData.get("showTopBar") === "on",
+    showTopBarText: formData.get("showTopBarText") === "on",
+    showTopBarHighlights: formData.get("showTopBarHighlights") === "on",
+    showSupportPhone: formData.get("showSupportPhone") === "on",
+    showSupportEmail: formData.get("showSupportEmail") === "on",
+    showMainNavigation: formData.get("showMainNavigation") === "on",
+    showHeaderActions: formData.get("showHeaderActions") === "on",
+    showAccountButton: formData.get("showAccountButton") === "on",
+    showCartButton: formData.get("showCartButton") === "on",
+    topBarSize: cleanHeaderLayoutSize(formData.get("topBarSize")),
+    headerSize: cleanHeaderLayoutSize(formData.get("headerSize")),
+    headerContainerWidth: cleanHeaderContainerWidth(formData.get("headerContainerWidth")),
     updatedById
   };
 

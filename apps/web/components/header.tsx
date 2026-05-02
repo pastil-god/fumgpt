@@ -3,6 +3,10 @@ import Link from "next/link";
 import { getStorefrontSettings } from "@/lib/content";
 import { getNavigationLinks, isExternalHref, type NavigationLink } from "@/lib/site";
 
+function cx(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(" ");
+}
+
 function buildHeaderNavigation(items: NavigationLink[]) {
   const primaryNavigation = getNavigationLinks(items, "primary");
   const homeItem = primaryNavigation.find((item) => item.label === "خانه");
@@ -33,31 +37,59 @@ function buildHeaderNavigation(items: NavigationLink[]) {
 
 export async function Header() {
   const settings = await getStorefrontSettings();
-  const navigation = buildHeaderNavigation(settings.navigation);
+  const header = settings.header;
+  const navigation = header.showMainNavigation ? buildHeaderNavigation(settings.navigation) : [];
   const logoSrc = settings.logoUrl || "/logo.svg";
   const logoIsSvg = logoSrc.toLowerCase().endsWith(".svg");
+  const topBarText = header.showTopBarText ? settings.topBarText.trim() : "";
+  const topBarHighlights = header.showTopBarHighlights
+    ? settings.topBarHighlights.map((item) => item.trim()).filter(Boolean)
+    : [];
+  const supportPhone = header.showSupportPhone ? settings.support.phone.trim() : "";
+  const supportEmail = header.showSupportEmail ? settings.support.email.trim() : "";
+  const showTopBar = header.showTopBar && Boolean(topBarText || topBarHighlights.length > 0 || supportPhone || supportEmail);
+  const showMainNavigation = header.showMainNavigation && navigation.length > 0;
+  const showAccountButton = header.showHeaderActions && header.showAccountButton;
+  const showCartButton = header.showHeaderActions && header.showCartButton;
+  const showHeaderActions = showAccountButton || showCartButton;
+  const containerWidthClass = `header-container-width-${header.headerContainerWidth}`;
 
   return (
     <>
-      <div className="topbar">
-        <div className="container topbar-shell">
-          <div className="topbar-items">
-            <span className="topbar-note">{settings.topBarText}</span>
-            {settings.topBarHighlights.map((item) => (
-              <span className="topbar-highlight" key={item}>
-                {item}
-              </span>
-            ))}
-          </div>
-          <div className="topbar-items topbar-contact is-muted">
-            <span className="topbar-contact-item">{settings.support.phone}</span>
-            <span className="topbar-contact-item">{settings.support.email}</span>
+      {showTopBar ? (
+        <div className={`topbar topbar-size-${header.topBarSize}`}>
+          <div className={cx("container", "topbar-shell", containerWidthClass)}>
+            {topBarText || topBarHighlights.length > 0 ? (
+              <div className="topbar-items">
+                {topBarText ? <span className="topbar-note">{topBarText}</span> : null}
+                {topBarHighlights.map((item) => (
+                  <span className="topbar-highlight" key={item}>
+                    {item}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+            {supportPhone || supportEmail ? (
+              <div className="topbar-items topbar-contact is-muted">
+                {supportPhone ? <span className="topbar-contact-item">{supportPhone}</span> : null}
+                {supportEmail ? <span className="topbar-contact-item">{supportEmail}</span> : null}
+              </div>
+            ) : null}
           </div>
         </div>
-      </div>
+      ) : null}
 
-      <header className="site-header">
-        <div className="container header-shell surface">
+      <header className={`site-header header-size-${header.headerSize}`}>
+        <div
+          className={cx(
+            "container",
+            "header-shell",
+            "surface",
+            containerWidthClass,
+            !showMainNavigation && "header-shell-no-nav",
+            !showHeaderActions && "header-shell-no-actions"
+          )}
+        >
           <Link href="/" className="brand">
             <Image
               src={logoSrc}
@@ -73,34 +105,42 @@ export async function Header() {
             </div>
           </Link>
 
-          <nav className="nav-links header-nav" aria-label="منوی اصلی سایت">
-            {navigation.map((item) =>
-              isExternalHref(item.href) ? (
-                <a
-                  className="header-nav-link"
-                  key={`${item.label}-${item.href}`}
-                  href={item.href}
-                  target={item.openInNewTab ? "_blank" : undefined}
-                  rel={item.openInNewTab ? "noreferrer" : undefined}
-                >
-                  {item.label}
-                </a>
-              ) : (
-                <Link className="header-nav-link" key={`${item.label}-${item.href}`} href={item.href}>
-                  {item.label}
-                </Link>
-              )
-            )}
-          </nav>
+          {showMainNavigation ? (
+            <nav className="nav-links header-nav" aria-label="منوی اصلی سایت">
+              {navigation.map((item) =>
+                isExternalHref(item.href) ? (
+                  <a
+                    className="header-nav-link"
+                    key={`${item.label}-${item.href}`}
+                    href={item.href}
+                    target={item.openInNewTab ? "_blank" : undefined}
+                    rel={item.openInNewTab ? "noreferrer" : undefined}
+                  >
+                    {item.label}
+                  </a>
+                ) : (
+                  <Link className="header-nav-link" key={`${item.label}-${item.href}`} href={item.href}>
+                    {item.label}
+                  </Link>
+                )
+              )}
+            </nav>
+          ) : null}
 
-          <div className="header-actions">
-            <Link href="/account" className="btn btn-ghost header-account-link">
-              حساب کاربری
-            </Link>
-            <Link href="/cart" className="btn btn-primary header-cart-link">
-              سبد خرید
-            </Link>
-          </div>
+          {showHeaderActions ? (
+            <div className="header-actions">
+              {showAccountButton ? (
+                <Link href="/account" className="btn btn-ghost header-account-link">
+                  حساب کاربری
+                </Link>
+              ) : null}
+              {showCartButton ? (
+                <Link href="/cart" className="btn btn-primary header-cart-link">
+                  سبد خرید
+                </Link>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </header>
     </>

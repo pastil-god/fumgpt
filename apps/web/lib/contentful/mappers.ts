@@ -161,6 +161,7 @@ export function mapContentfulSiteSettings(
       copyright: fields?.copyrightText || fallbackStorefrontSettings.footer.copyright
     },
     appearance: fallbackStorefrontSettings.appearance,
+    header: fallbackStorefrontSettings.header,
     trustBadges: pickStringList(fields?.trustBadges, fallbackStorefrontSettings.trustBadges),
     navigation: fallbackStorefrontSettings.navigation
   };

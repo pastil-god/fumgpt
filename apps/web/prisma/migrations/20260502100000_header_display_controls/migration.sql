@@ -1,0 +1,13 @@
+ALTER TABLE "site_settings"
+ADD COLUMN "showTopBar" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN "showTopBarText" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN "showTopBarHighlights" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN "showSupportPhone" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN "showSupportEmail" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN "showMainNavigation" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN "showHeaderActions" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN "showAccountButton" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN "showCartButton" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN "topBarSize" TEXT,
+ADD COLUMN "headerSize" TEXT,
+ADD COLUMN "headerContainerWidth" TEXT;

@@ -142,6 +142,35 @@ function SelectField({
   );
 }
 
+function ToggleField({
+  name,
+  label,
+  defaultChecked
+}: {
+  name: string;
+  label: string;
+  defaultChecked: boolean;
+}) {
+  return (
+    <label className="admin-toggle-card">
+      <input type="checkbox" name={name} defaultChecked={defaultChecked} />
+      <span>{label}</span>
+    </label>
+  );
+}
+
+const HEADER_SIZE_OPTIONS = [
+  { value: "compact", label: "فشرده" },
+  { value: "normal", label: "معمولی" },
+  { value: "large", label: "بزرگ" }
+];
+
+const HEADER_CONTAINER_WIDTH_OPTIONS = [
+  { value: "normal", label: "معمولی" },
+  { value: "wide", label: "عریض" },
+  { value: "full", label: "تمام عرض" }
+];
+
 export default async function AdminSiteSettingsPage({
   searchParams
 }: {
@@ -262,6 +291,50 @@ export default async function AdminSiteSettingsPage({
                 value: option.value,
                 label: option.label
               }))}
+            />
+          </div>
+        </div>
+
+        <div className="admin-settings-group">
+          <div>
+            <strong>هدر و نوار بالایی</strong>
+            <p className="muted">
+              نمایش، اندازه و عرض بخش‌های بالای سایت را بدون تغییر کد کنترل کن.
+            </p>
+          </div>
+          <div className="admin-settings-grid">
+            <div className="admin-toggle-grid admin-settings-field-wide">
+              <ToggleField name="showTopBar" label="نمایش نوار بالایی" defaultChecked={defaults.showTopBar} />
+              <ToggleField name="showTopBarText" label="نمایش متن نوار بالایی" defaultChecked={defaults.showTopBarText} />
+              <ToggleField
+                name="showTopBarHighlights"
+                label="نمایش نشان‌های نوار بالایی"
+                defaultChecked={defaults.showTopBarHighlights}
+              />
+              <ToggleField name="showSupportPhone" label="نمایش شماره پشتیبانی" defaultChecked={defaults.showSupportPhone} />
+              <ToggleField name="showSupportEmail" label="نمایش ایمیل پشتیبانی" defaultChecked={defaults.showSupportEmail} />
+              <ToggleField name="showMainNavigation" label="نمایش منوی اصلی" defaultChecked={defaults.showMainNavigation} />
+              <ToggleField name="showHeaderActions" label="نمایش دکمه‌های هدر" defaultChecked={defaults.showHeaderActions} />
+              <ToggleField name="showAccountButton" label="نمایش دکمه حساب کاربری" defaultChecked={defaults.showAccountButton} />
+              <ToggleField name="showCartButton" label="نمایش دکمه سبد خرید" defaultChecked={defaults.showCartButton} />
+            </div>
+            <SelectField
+              name="topBarSize"
+              label="اندازه نوار بالایی"
+              defaultValue={defaults.topBarSize}
+              options={HEADER_SIZE_OPTIONS}
+            />
+            <SelectField
+              name="headerSize"
+              label="اندازه هدر اصلی"
+              defaultValue={defaults.headerSize}
+              options={HEADER_SIZE_OPTIONS}
+            />
+            <SelectField
+              name="headerContainerWidth"
+              label="عرض هدر"
+              defaultValue={defaults.headerContainerWidth}
+              options={HEADER_CONTAINER_WIDTH_OPTIONS}
             />
           </div>
         </div>

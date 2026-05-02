@@ -300,6 +300,18 @@ model SiteSetting {
   whatsappUrl           String?
   defaultSeoTitle       String?
   defaultSeoDescription String?
+  showTopBar           Boolean  @default(true)
+  showTopBarText       Boolean  @default(true)
+  showTopBarHighlights Boolean  @default(true)
+  showSupportPhone     Boolean  @default(true)
+  showSupportEmail     Boolean  @default(true)
+  showMainNavigation   Boolean  @default(true)
+  showHeaderActions    Boolean  @default(true)
+  showAccountButton    Boolean  @default(true)
+  showCartButton       Boolean  @default(true)
+  topBarSize           String?
+  headerSize           String?
+  headerContainerWidth String?
   updatedById           String?
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
