@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { canAccessCmsOperations, isOperationalRole, ROLE_LABELS } from "@/lib/authorization";
-import { getOrderStatusMeta, listOrdersForCurrentUser } from "@/lib/checkout";
+import { getOrderStatusMeta, listOrdersForUser } from "@/lib/checkout";
 import { formatPersianDate } from "@/lib/content";
 import { formatPriceIRR } from "@/lib/mock-data";
 import { siteConfig } from "@/lib/site";
@@ -52,7 +52,14 @@ export default async function AccountPage({
     redirect("/login?next=/account");
   }
 
-  const recentOrders = await listOrdersForCurrentUser(5);
+  let recentOrders: Awaited<ReturnType<typeof listOrdersForUser>> = [];
+  let recentOrdersError = false;
+
+  try {
+    recentOrders = await listOrdersForUser(session.userId, 5);
+  } catch {
+    recentOrdersError = true;
+  }
 
   return (
     <section className="section">
@@ -137,7 +144,13 @@ export default async function AccountPage({
 
             <div className="surface nested-card">
               <strong>سفارش‌های اخیر</strong>
-              {recentOrders.length > 0 ? (
+              {recentOrdersError ? (
+                <div className="status-banner status-banner-warning">
+                  <strong>سابقه سفارش‌ها فعلا در دسترس نیست</strong>
+                  <p>ورود شما معتبر است، اما خواندن سفارش‌ها از دیتابیس با خطا روبه‌رو شد. اگر این پیام در production دیده می‌شود، migration جدول‌های orders و order_items را بررسی کن.</p>
+                </div>
+              ) : null}
+              {recentOrdersError ? null : recentOrders.length > 0 ? (
                 <>
                   <div className="order-history-list">
                     {recentOrders.map((order) => {

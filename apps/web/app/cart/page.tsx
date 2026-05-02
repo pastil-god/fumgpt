@@ -115,6 +115,13 @@ export default async function CartPage({
   const hasItems = cart.items.length > 0;
   const cartProductSlugs = new Set(cart.items.map((item) => item.productSlug));
   const recommendations = featuredProducts.filter((item) => !cartProductSlugs.has(item.slug)).slice(0, 3);
+  const supportCta =
+    storefrontSettings.support.helpCtaHref && storefrontSettings.support.helpCtaLabel
+      ? {
+          href: storefrontSettings.support.helpCtaHref,
+          label: storefrontSettings.support.helpCtaLabel
+        }
+      : null;
 
   return (
     <section className="section">
@@ -275,20 +282,17 @@ export default async function CartPage({
               </button>
             )}
 
-            {isExternalHref(storefrontSettings.support.helpCtaHref) ? (
-              <a
-                className="btn btn-ghost btn-block"
-                href={storefrontSettings.support.helpCtaHref}
-                target="_blank"
-                rel="noreferrer"
-              >
-                {storefrontSettings.support.helpCtaLabel}
-              </a>
-            ) : (
-              <Link className="btn btn-ghost btn-block" href={storefrontSettings.support.helpCtaHref}>
-                {storefrontSettings.support.helpCtaLabel}
-              </Link>
-            )}
+            {supportCta ? (
+              isExternalHref(supportCta.href) ? (
+                <a className="btn btn-ghost btn-block" href={supportCta.href} target="_blank" rel="noreferrer">
+                  {supportCta.label}
+                </a>
+              ) : (
+                <Link className="btn btn-ghost btn-block" href={supportCta.href}>
+                  {supportCta.label}
+                </Link>
+              )
+            ) : null}
 
             <Link className="btn btn-ghost btn-block" href="/products">
               بازگشت به فروشگاه

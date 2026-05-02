@@ -261,7 +261,8 @@ export function CloudinaryImageField({
       <span>{label}</span>
       <input
         name={name}
-        type="url"
+        type="text"
+        inputMode="url"
         value={value}
         onChange={handleManualValueChange}
         placeholder={placeholder}

@@ -51,9 +51,18 @@ function SupportAction({
   label: string;
   className?: string;
 }) {
+  if (!href || !label) {
+    return null;
+  }
+
   if (isExternalHref(href)) {
     return (
-      <a className={className} href={href} target="_blank" rel="noreferrer">
+      <a
+        className={className}
+        href={href}
+        target={/^https?:\/\//i.test(href) ? "_blank" : undefined}
+        rel={/^https?:\/\//i.test(href) ? "noreferrer" : undefined}
+      >
         {label}
       </a>
     );

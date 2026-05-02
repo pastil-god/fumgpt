@@ -47,14 +47,28 @@ function cleanString(value: FormDataEntryValue | string | null | undefined) {
   return text.length > 0 ? text : null;
 }
 
+function cleanOptionalString(value: FormDataEntryValue | string | null | undefined) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
 function cleanSafeHref(value: FormDataEntryValue | string | null | undefined) {
   const text = cleanString(value);
   return isSafeInlineHref(text) ? text : null;
 }
 
+function cleanOptionalSafeHref(value: FormDataEntryValue | string | null | undefined) {
+  const text = cleanOptionalString(value);
+  return text && isSafeInlineHref(text) ? text : "";
+}
+
 function cleanSafeImageUrl(value: FormDataEntryValue | string | null | undefined) {
   const text = cleanString(value);
   return isSafeImageUrl(text) ? text : null;
+}
+
+function cleanOptionalSafeImageUrl(value: FormDataEntryValue | string | null | undefined) {
+  const text = cleanOptionalString(value);
+  return text && isSafeInlineImageUrl(text) ? text : "";
 }
 
 function cleanSafeInlineImageUrl(value: FormDataEntryValue | string | null | undefined) {
@@ -133,6 +147,77 @@ function cleanHeaderContainerWidth(value: FormDataEntryValue | string | null | u
   return isHeaderContainerWidth(text) ? text : DEFAULT_HEADER_DISPLAY_SETTINGS.headerContainerWidth;
 }
 
+export const HEADER_DISPLAY_PRESETS = {
+  minimal: {
+    label: "مینیمال",
+    description: "لوگو و منوی اصلی، بدون نوار بالا و دکمه‌های اضافی.",
+    settings: {
+      showTopBar: false,
+      showTopBarText: false,
+      showTopBarHighlights: false,
+      showSupportPhone: false,
+      showSupportEmail: false,
+      showMainNavigation: true,
+      showHeaderActions: false,
+      showAccountButton: false,
+      showCartButton: false,
+      topBarSize: "compact",
+      headerSize: "compact",
+      headerContainerWidth: "normal"
+    }
+  },
+  normal: {
+    label: "معمولی",
+    description: "چیدمان پیشنهادی با نوار بالا، منو و دکمه‌های حساب و سبد.",
+    settings: {
+      ...DEFAULT_HEADER_DISPLAY_SETTINGS,
+      topBarSize: "normal",
+      headerSize: "normal",
+      headerContainerWidth: "normal"
+    }
+  },
+  full: {
+    label: "کامل",
+    description: "نمای کامل‌تر با اندازه بزرگ‌تر و فضای بیشتر برای برند.",
+    settings: {
+      ...DEFAULT_HEADER_DISPLAY_SETTINGS,
+      topBarSize: "large",
+      headerSize: "large",
+      headerContainerWidth: "wide"
+    }
+  }
+} as const satisfies Record<
+  string,
+  {
+    label: string;
+    description: string;
+    settings: HeaderDisplaySettings;
+  }
+>;
+
+export type HeaderDisplayPreset = keyof typeof HEADER_DISPLAY_PRESETS;
+export type HeaderDisplayPresetInput = HeaderDisplayPreset | "custom";
+
+export function getHeaderDisplayPreset(settings: HeaderDisplaySettings): HeaderDisplayPresetInput {
+  for (const [preset, presetConfig] of Object.entries(HEADER_DISPLAY_PRESETS)) {
+    const presetSettings = presetConfig.settings;
+    const matches = (Object.keys(DEFAULT_HEADER_DISPLAY_SETTINGS) as Array<keyof HeaderDisplaySettings>).every(
+      (key) => settings[key] === presetSettings[key]
+    );
+
+    if (matches) {
+      return preset as HeaderDisplayPreset;
+    }
+  }
+
+  return "custom";
+}
+
+function cleanHeaderDisplayPreset(value: FormDataEntryValue | string | null | undefined): HeaderDisplayPresetInput {
+  const text = typeof value === "string" ? value : "";
+  return text in HEADER_DISPLAY_PRESETS ? (text as HeaderDisplayPreset) : "custom";
+}
+
 export function normalizeHeaderDisplaySettings(
   source: Record<string, unknown> | null | undefined,
   base: HeaderDisplaySettings = DEFAULT_HEADER_DISPLAY_SETTINGS
@@ -163,6 +248,38 @@ function pickOptionalText(source: Record<string, unknown> | null | undefined, ke
   return typeof value === "string" && value.trim() ? value.trim() : fallback;
 }
 
+function pickClearableText(source: Record<string, unknown> | null | undefined, key: string, fallback: string) {
+  if (!source) {
+    return fallback;
+  }
+
+  const value = source[key];
+  return typeof value === "string" ? value.trim() : fallback;
+}
+
+function pickClearableImageUrl(source: Record<string, unknown> | null | undefined, key: string, fallback: string) {
+  const value = pickClearableText(source, key, fallback);
+
+  if (!value) {
+    return "";
+  }
+
+  return isSafeInlineImageUrl(value) ? value : fallback;
+}
+
+function pickEditableText(source: Record<string, unknown> | null | undefined, key: string, fallback: string) {
+  if (!source) {
+    return fallback;
+  }
+
+  const value = source[key];
+  return typeof value === "string" ? value : fallback;
+}
+
+function buildCopyrightText(brandName: string) {
+  return `© ${new Date().getFullYear()} ${brandName}. همه حقوق محفوظ است.`;
+}
+
 function splitLines(value: string | null | undefined, fallback: string[]) {
   if (!value) {
     return fallback;
@@ -180,8 +297,12 @@ function pickHexColor(value: string | null | undefined, fallback: string) {
   return isHexColor(value) && value ? value : fallback;
 }
 
+function isProductionBuildPhase() {
+  return process.env.NEXT_PHASE === "phase-production-build";
+}
+
 function isDatabaseConfigured() {
-  return Boolean(process.env.DATABASE_URL);
+  return Boolean(process.env.DATABASE_URL) && !isProductionBuildPhase();
 }
 
 export const getStoredSiteSettings = cache(async () => {
@@ -272,30 +393,32 @@ export function mergeStorefrontSettings(
     return base;
   }
 
+  const brandName = pickText(settings, "siteTitle", base.brandName);
+
   return {
     ...base,
-    brandName: pickText(settings, "siteTitle", base.brandName),
+    brandName,
     siteTitle: pickText(settings, "defaultSeoTitle", settings.siteTitle || base.siteTitle),
     siteDescription: pickText(settings, "defaultSeoDescription", settings.metaDescription || base.siteDescription),
-    brandTagline: pickText(settings, "tagline", base.brandTagline),
-    logoUrl: pickOptionalText(settings, "logoUrl", base.logoUrl),
-    faviconUrl: pickOptionalText(settings, "faviconUrl", base.faviconUrl),
+    brandTagline: pickClearableText(settings, "tagline", base.brandTagline),
+    logoUrl: pickClearableImageUrl(settings, "logoUrl", base.logoUrl || ""),
+    faviconUrl: pickClearableImageUrl(settings, "faviconUrl", base.faviconUrl || ""),
     support: {
       ...base.support,
-      phone: pickText(settings, "contactPhone", base.support.phone),
-      email: pickText(settings, "contactEmail", base.support.email),
-      address: pickText(settings, "contactAddress", base.support.address),
-      helpCtaLabel: pickText(settings, "supportCtaLabel", base.support.helpCtaLabel),
-      helpCtaHref: pickText(settings, "supportCtaHref", base.support.helpCtaHref)
+      phone: pickClearableText(settings, "contactPhone", base.support.phone),
+      email: pickClearableText(settings, "contactEmail", base.support.email),
+      address: pickClearableText(settings, "contactAddress", base.support.address),
+      helpCtaLabel: pickClearableText(settings, "supportCtaLabel", base.support.helpCtaLabel),
+      helpCtaHref: pickClearableText(settings, "supportCtaHref", base.support.helpCtaHref)
     },
     socials: {
-      telegram: pickText(settings, "telegramUrl", base.socials.telegram),
-      instagram: pickText(settings, "instagramUrl", base.socials.instagram),
-      whatsapp: pickText(settings, "whatsappUrl", base.socials.whatsapp)
+      telegram: pickClearableText(settings, "telegramUrl", base.socials.telegram),
+      instagram: pickClearableText(settings, "instagramUrl", base.socials.instagram),
+      whatsapp: pickClearableText(settings, "whatsappUrl", base.socials.whatsapp)
     },
     footer: {
-      description: pickText(settings, "footerText", base.footer.description),
-      copyright: base.footer.copyright
+      description: pickClearableText(settings, "footerText", base.footer.description),
+      copyright: buildCopyrightText(brandName)
     },
     appearance: getAppearanceInput(settings, base.appearance),
     header: normalizeHeaderDisplaySettings(settings, base.header)
@@ -398,11 +521,11 @@ export function getEditableSiteSettingsDefaults(settings: Awaited<ReturnType<typ
   const header = normalizeHeaderDisplaySettings(settings, merged.header);
 
   return {
-    siteTitle: settings?.siteTitle || merged.brandName,
-    tagline: settings?.tagline || merged.brandTagline,
-    metaDescription: settings?.metaDescription || merged.siteDescription,
-    logoUrl: settings?.logoUrl || merged.logoUrl || "",
-    faviconUrl: settings?.faviconUrl || "",
+    siteTitle: pickEditableText(settings, "siteTitle", merged.brandName),
+    tagline: pickEditableText(settings, "tagline", merged.brandTagline),
+    metaDescription: pickEditableText(settings, "metaDescription", merged.siteDescription),
+    logoUrl: pickEditableText(settings, "logoUrl", merged.logoUrl || ""),
+    faviconUrl: pickEditableText(settings, "faviconUrl", merged.faviconUrl || ""),
     primaryColor: merged.appearance.primaryColor,
     secondaryColor: merged.appearance.secondaryColor,
     backgroundTint: merged.appearance.backgroundTint,
@@ -413,17 +536,19 @@ export function getEditableSiteSettingsDefaults(settings: Awaited<ReturnType<typ
     cardShadow: merged.appearance.cardShadow,
     sectionDensity: merged.appearance.sectionDensity,
     buttonStyle: merged.appearance.buttonStyle,
-    footerText: settings?.footerText || merged.footer.description,
-    contactPhone: settings?.contactPhone || merged.support.phone,
-    contactEmail: settings?.contactEmail || merged.support.email,
-    contactAddress: settings?.contactAddress || merged.support.address,
-    supportCtaLabel: settings?.supportCtaLabel || merged.support.helpCtaLabel,
-    supportCtaHref: settings?.supportCtaHref || merged.support.helpCtaHref,
-    telegramUrl: settings?.telegramUrl || merged.socials.telegram,
-    instagramUrl: settings?.instagramUrl || merged.socials.instagram,
-    whatsappUrl: settings?.whatsappUrl || merged.socials.whatsapp,
-    defaultSeoTitle: settings?.defaultSeoTitle || merged.siteTitle,
-    defaultSeoDescription: settings?.defaultSeoDescription || merged.siteDescription,
+    footerText: pickEditableText(settings, "footerText", merged.footer.description),
+    contactPhone: pickEditableText(settings, "contactPhone", merged.support.phone),
+    contactEmail: pickEditableText(settings, "contactEmail", merged.support.email),
+    contactAddress: pickEditableText(settings, "contactAddress", merged.support.address),
+    supportCtaLabel: pickEditableText(settings, "supportCtaLabel", merged.support.helpCtaLabel),
+    supportCtaHref: pickEditableText(settings, "supportCtaHref", merged.support.helpCtaHref),
+    telegramUrl: pickEditableText(settings, "telegramUrl", merged.socials.telegram),
+    instagramUrl: pickEditableText(settings, "instagramUrl", merged.socials.instagram),
+    whatsappUrl: pickEditableText(settings, "whatsappUrl", merged.socials.whatsapp),
+    defaultSeoTitle: pickEditableText(settings, "defaultSeoTitle", merged.siteTitle),
+    defaultSeoDescription: pickEditableText(settings, "defaultSeoDescription", merged.siteDescription),
+    copyrightText: merged.footer.copyright,
+    headerPreset: getHeaderDisplayPreset(header),
     showTopBar: header.showTopBar,
     showTopBarText: header.showTopBarText,
     showTopBarHighlights: header.showTopBarHighlights,
@@ -483,27 +608,54 @@ export function getAppearanceAuditDetails(settings: unknown) {
 export async function saveSiteSettingsFromForm(formData: FormData, updatedById: string) {
   const currentSettings = await getStoredSiteSettings();
   const mergedAppearance = getAppearanceInput(currentSettings, fallbackStorefrontSettings.appearance);
-  const appearance = normalizeInlineThemeValues(
+  const intent = cleanOptionalString(formData.get("intent"));
+  const appearance =
+    intent === "resetAppearance"
+      ? DEFAULT_INLINE_THEME_VALUES
+      : normalizeInlineThemeValues(
+          {
+            primaryColor: cleanHexColor(formData.get("primaryColor")),
+            secondaryColor: cleanHexColor(formData.get("secondaryColor")),
+            backgroundTint: cleanHexColor(formData.get("backgroundTint")),
+            fontFamily: cleanFontFamily(formData.get("fontFamily")),
+            headingFontFamily: cleanFontFamily(formData.get("headingFontFamily")),
+            buttonRadius: cleanString(formData.get("buttonRadius")),
+            cardRadius: cleanString(formData.get("cardRadius")),
+            cardShadow: cleanString(formData.get("cardShadow")),
+            sectionDensity: cleanString(formData.get("sectionDensity")),
+            buttonStyle: cleanString(formData.get("buttonStyle"))
+          },
+          mergedAppearance
+        );
+  const currentHeader = normalizeHeaderDisplaySettings(currentSettings, fallbackStorefrontSettings.header);
+  const headerPreset = cleanHeaderDisplayPreset(formData.get("headerPreset"));
+  const customHeader = normalizeHeaderDisplaySettings(
     {
-      primaryColor: cleanHexColor(formData.get("primaryColor")),
-      secondaryColor: cleanHexColor(formData.get("secondaryColor")),
-      backgroundTint: cleanHexColor(formData.get("backgroundTint")),
-      fontFamily: cleanFontFamily(formData.get("fontFamily")),
-      headingFontFamily: cleanFontFamily(formData.get("headingFontFamily")),
-      buttonRadius: cleanString(formData.get("buttonRadius")),
-      cardRadius: cleanString(formData.get("cardRadius")),
-      cardShadow: cleanString(formData.get("cardShadow")),
-      sectionDensity: cleanString(formData.get("sectionDensity")),
-      buttonStyle: cleanString(formData.get("buttonStyle"))
+      showTopBar: formData.get("showTopBar") === "on",
+      showTopBarText: formData.get("showTopBarText") === "on",
+      showTopBarHighlights: formData.get("showTopBarHighlights") === "on",
+      showSupportPhone: formData.get("showSupportPhone") === "on",
+      showSupportEmail: formData.get("showSupportEmail") === "on",
+      showMainNavigation: formData.get("showMainNavigation") === "on",
+      showHeaderActions: formData.get("showHeaderActions") === "on",
+      showAccountButton: formData.get("showAccountButton") === "on",
+      showCartButton: formData.get("showCartButton") === "on",
+      topBarSize: formData.has("topBarSize") ? cleanHeaderLayoutSize(formData.get("topBarSize")) : currentHeader.topBarSize,
+      headerSize: formData.has("headerSize") ? cleanHeaderLayoutSize(formData.get("headerSize")) : currentHeader.headerSize,
+      headerContainerWidth: formData.has("headerContainerWidth")
+        ? cleanHeaderContainerWidth(formData.get("headerContainerWidth"))
+        : currentHeader.headerContainerWidth
     },
-    mergedAppearance
+    currentHeader
   );
+  const header =
+    headerPreset === "custom" ? customHeader : HEADER_DISPLAY_PRESETS[headerPreset].settings;
   const data = {
     siteTitle: cleanString(formData.get("siteTitle")),
-    tagline: cleanString(formData.get("tagline")),
+    tagline: cleanOptionalString(formData.get("tagline")),
     metaDescription: cleanString(formData.get("metaDescription")),
-    logoUrl: cleanSafeImageUrl(formData.get("logoUrl")),
-    faviconUrl: cleanSafeImageUrl(formData.get("faviconUrl")),
+    logoUrl: cleanOptionalSafeImageUrl(formData.get("logoUrl")),
+    faviconUrl: cleanOptionalSafeImageUrl(formData.get("faviconUrl")),
     primaryColor: appearance.primaryColor,
     secondaryColor: appearance.secondaryColor,
     backgroundTint: appearance.backgroundTint,
@@ -514,29 +666,29 @@ export async function saveSiteSettingsFromForm(formData: FormData, updatedById: 
     cardShadow: appearance.cardShadow,
     sectionDensity: appearance.sectionDensity,
     buttonStyle: appearance.buttonStyle,
-    footerText: cleanString(formData.get("footerText")),
-    contactPhone: cleanString(formData.get("contactPhone")),
-    contactEmail: cleanString(formData.get("contactEmail")),
-    contactAddress: cleanString(formData.get("contactAddress")),
-    supportCtaLabel: cleanString(formData.get("supportCtaLabel")),
-    supportCtaHref: cleanSafeHref(formData.get("supportCtaHref")),
-    telegramUrl: cleanSafeHref(formData.get("telegramUrl")),
-    instagramUrl: cleanSafeHref(formData.get("instagramUrl")),
-    whatsappUrl: cleanSafeHref(formData.get("whatsappUrl")),
+    footerText: cleanOptionalString(formData.get("footerText")),
+    contactPhone: cleanOptionalString(formData.get("contactPhone")),
+    contactEmail: cleanOptionalString(formData.get("contactEmail")),
+    contactAddress: cleanOptionalString(formData.get("contactAddress")),
+    supportCtaLabel: cleanOptionalString(formData.get("supportCtaLabel")),
+    supportCtaHref: cleanOptionalSafeHref(formData.get("supportCtaHref")),
+    telegramUrl: cleanOptionalSafeHref(formData.get("telegramUrl")),
+    instagramUrl: cleanOptionalSafeHref(formData.get("instagramUrl")),
+    whatsappUrl: cleanOptionalSafeHref(formData.get("whatsappUrl")),
     defaultSeoTitle: cleanString(formData.get("defaultSeoTitle")),
     defaultSeoDescription: cleanString(formData.get("defaultSeoDescription")),
-    showTopBar: formData.get("showTopBar") === "on",
-    showTopBarText: formData.get("showTopBarText") === "on",
-    showTopBarHighlights: formData.get("showTopBarHighlights") === "on",
-    showSupportPhone: formData.get("showSupportPhone") === "on",
-    showSupportEmail: formData.get("showSupportEmail") === "on",
-    showMainNavigation: formData.get("showMainNavigation") === "on",
-    showHeaderActions: formData.get("showHeaderActions") === "on",
-    showAccountButton: formData.get("showAccountButton") === "on",
-    showCartButton: formData.get("showCartButton") === "on",
-    topBarSize: cleanHeaderLayoutSize(formData.get("topBarSize")),
-    headerSize: cleanHeaderLayoutSize(formData.get("headerSize")),
-    headerContainerWidth: cleanHeaderContainerWidth(formData.get("headerContainerWidth")),
+    showTopBar: header.showTopBar,
+    showTopBarText: header.showTopBarText,
+    showTopBarHighlights: header.showTopBarHighlights,
+    showSupportPhone: header.showSupportPhone,
+    showSupportEmail: header.showSupportEmail,
+    showMainNavigation: header.showMainNavigation,
+    showHeaderActions: header.showHeaderActions,
+    showAccountButton: header.showAccountButton,
+    showCartButton: header.showCartButton,
+    topBarSize: header.topBarSize,
+    headerSize: header.headerSize,
+    headerContainerWidth: header.headerContainerWidth,
     updatedById
   };
 

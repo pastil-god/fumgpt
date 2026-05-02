@@ -15,6 +15,13 @@ export const metadata: Metadata = buildPublicMetadata({
 
 export default async function HelpPage() {
   const [settings, session] = await Promise.all([getStorefrontSettings(), getOptionalSession({ context: "/help" })]);
+  const supportLinks = [
+    settings.support.email ? { href: `mailto:${settings.support.email}`, label: settings.support.email } : null,
+    settings.support.helpCtaHref && settings.support.helpCtaLabel
+      ? { href: settings.support.helpCtaHref, label: settings.support.helpCtaLabel }
+      : null
+  ].filter((item): item is { href: string; label: string } => Boolean(item));
+  const supportTextItems = [settings.support.phone, settings.support.address].filter(Boolean);
   const helpActions: Array<{
     href: string;
     label: string;
@@ -54,16 +61,28 @@ export default async function HelpPage() {
               انجام شود.
             </p>
             <div className="footer-links operational-links">
-              <a href={`mailto:${settings.support.email}`}>{settings.support.email}</a>
-              <span>{settings.support.phone}</span>
-              <span>{settings.support.address}</span>
-              {isExternalHref(settings.support.helpCtaHref) ? (
-                <a href={settings.support.helpCtaHref} target="_blank" rel="noreferrer">
-                  {settings.support.helpCtaLabel}
-                </a>
-              ) : (
-                <Link href={settings.support.helpCtaHref}>{settings.support.helpCtaLabel}</Link>
+              {supportLinks.map((item) =>
+                isExternalHref(item.href) ? (
+                  <a
+                    href={item.href}
+                    key={`${item.label}-${item.href}`}
+                    target={/^https?:\/\//i.test(item.href) ? "_blank" : undefined}
+                    rel={/^https?:\/\//i.test(item.href) ? "noreferrer" : undefined}
+                  >
+                    {item.label}
+                  </a>
+                ) : (
+                  <Link href={item.href} key={`${item.label}-${item.href}`}>
+                    {item.label}
+                  </Link>
+                )
               )}
+              {supportTextItems.map((item) => (
+                <span key={item}>{item}</span>
+              ))}
+              {supportLinks.length === 0 && supportTextItems.length === 0 ? (
+                <span>کانال پشتیبانی هنوز تنظیم نشده است.</span>
+              ) : null}
             </div>
           </div>
 

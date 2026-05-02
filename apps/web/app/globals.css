@@ -2033,6 +2033,10 @@ main {
   grid-template-columns: minmax(0, 1.2fr) minmax(240px, 0.7fr) minmax(240px, 0.7fr);
 }
 
+.footer-grid-no-contact {
+  grid-template-columns: minmax(0, 1.2fr) minmax(240px, 0.7fr);
+}
+
 .footer-brand-card {
   align-content: start;
 }
@@ -3359,6 +3363,28 @@ main {
   align-items: end;
 }
 
+.admin-settings-actions-inline,
+.admin-settings-actions-bottom {
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.admin-settings-actions-inline .muted,
+.admin-settings-actions-bottom .muted {
+  font-size: var(--text-sm);
+}
+
+.admin-settings-actions-bottom {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.66);
+}
+
+.admin-settings-feedback {
+  margin-top: 18px;
+}
+
 .admin-command-art {
   border-radius: 32px;
   overflow: hidden;
@@ -3451,8 +3477,211 @@ main {
   gap: 14px;
 }
 
+.admin-site-settings-form {
+  gap: 18px;
+}
+
+.admin-settings-hero-clean {
+  align-items: center;
+}
+
+.admin-settings-hero-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.admin-settings-card {
+  display: grid;
+  gap: 18px;
+  padding: clamp(18px, 2.4vw, 26px);
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 12% 12%, rgba(26, 115, 232, 0.06), transparent 30%),
+    rgba(255, 255, 255, 0.72);
+}
+
+.admin-settings-card.is-featured {
+  border-color: rgba(26, 115, 232, 0.14);
+  background:
+    radial-gradient(circle at 8% 10%, rgba(26, 115, 232, 0.12), transparent 32%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 255, 0.88));
+}
+
+.admin-settings-card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.admin-settings-card-header h3 {
+  margin: 8px 0 6px;
+  color: var(--text);
+  font-size: 1.18rem;
+}
+
+.admin-settings-grid-comfortable {
+  gap: 16px;
+}
+
+.admin-settings-field {
+  display: grid;
+  gap: 8px;
+  color: var(--muted-strong);
+  font-weight: 700;
+}
+
+.admin-settings-field input,
+.admin-settings-field select,
+.admin-settings-field textarea {
+  width: 100%;
+  min-height: 50px;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+  transition:
+    border-color var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard),
+    background-color var(--motion-fast) var(--ease-standard);
+}
+
+.admin-settings-field input[type="color"] {
+  min-height: 50px;
+  padding: 6px;
+}
+
+.admin-settings-field textarea {
+  padding-block: 14px;
+  line-height: 1.9;
+}
+
+.admin-settings-field input:focus,
+.admin-settings-field select:focus,
+.admin-settings-field textarea:focus {
+  border-color: rgba(26, 115, 232, 0.24);
+  box-shadow: 0 0 0 4px var(--color-accent-soft);
+}
+
+.admin-settings-field small,
+.admin-toggle-card-clean small,
+.admin-readonly-value small,
+.admin-settings-details-card summary small {
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: 1.7;
+}
+
 .admin-settings-field-wide {
   grid-column: 1 / -1;
+}
+
+.admin-preset-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.admin-preset-card {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid rgba(23, 33, 50, 0.06);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.admin-preset-card strong {
+  color: var(--text);
+}
+
+.admin-toggle-grid-clean {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.admin-toggle-card-clean {
+  align-items: flex-start;
+}
+
+.admin-toggle-card-clean input {
+  margin-top: 4px;
+  accent-color: var(--primary);
+}
+
+.admin-toggle-card-clean span {
+  display: grid;
+  gap: 3px;
+}
+
+.admin-toggle-card-clean strong {
+  color: var(--text);
+  font-size: 0.92rem;
+}
+
+.admin-settings-details {
+  display: grid;
+  gap: 14px;
+}
+
+.admin-settings-details summary {
+  cursor: pointer;
+  color: var(--text);
+  font-weight: 800;
+}
+
+.admin-settings-details[open] summary {
+  margin-bottom: 14px;
+}
+
+.admin-settings-details-card {
+  display: block;
+}
+
+.admin-settings-details-card > summary {
+  display: flex;
+  cursor: pointer;
+  list-style: none;
+}
+
+.admin-settings-details-card > summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-settings-details-card > summary > span {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-settings-details-card > summary strong {
+  color: var(--text);
+  font-size: 1.05rem;
+}
+
+.admin-settings-details-card[open] > summary {
+  margin-bottom: 18px;
+}
+
+.admin-readonly-value {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border: 1px dashed rgba(26, 115, 232, 0.2);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.admin-readonly-value span {
+  color: var(--muted-strong);
+  font-weight: 800;
+}
+
+.admin-readonly-value strong {
+  color: var(--text);
+  line-height: 1.8;
 }
 
 .admin-media-field {
@@ -4966,6 +5195,10 @@ textarea.inline-editable-control {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .admin-preset-list {
+    grid-template-columns: 1fr;
+  }
+
   .inline-theme-panel,
   .inline-style-panel {
     inset-block-start: auto;
@@ -4995,7 +5228,8 @@ textarea.inline-editable-control {
 
   .admin-metrics-grid,
   .admin-settings-grid,
-  .admin-toggle-grid {
+  .admin-toggle-grid,
+  .admin-preset-list {
     grid-template-columns: 1fr;
   }
 

@@ -450,6 +450,10 @@ export async function listOrdersForCurrentUser(limit = 5) {
   return dbOrders.listRecentByUserId(session.userId, limit);
 }
 
+export async function listOrdersForUser(userId: string, limit = 5) {
+  return dbOrders.listRecentByUserId(userId, limit);
+}
+
 export function getOrderTimelineMessage(params: {
   status: string;
   paymentProvider: string;

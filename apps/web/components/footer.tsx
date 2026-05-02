@@ -9,10 +9,21 @@ export async function Footer() {
   const footerNavigation = getNavigationLinks(settings.navigation, "footer");
   const logoSrc = settings.logoUrl || "/logo.svg";
   const logoIsSvg = logoSrc.toLowerCase().endsWith(".svg");
+  const socialLinks = [
+    { label: "تلگرام", href: settings.socials.telegram },
+    { label: "اینستاگرام", href: settings.socials.instagram },
+    { label: "واتساپ", href: settings.socials.whatsapp }
+  ].filter((item) => item.href);
+  const contactItems = [
+    ...socialLinks,
+    settings.support.email ? { label: settings.support.email, href: `mailto:${settings.support.email}` } : null
+  ].filter((item): item is { label: string; href: string } => Boolean(item));
+  const contactTextItems = [settings.support.phone, settings.support.address].filter(Boolean);
+  const hasContactContent = contactItems.length > 0 || contactTextItems.length > 0;
 
   return (
     <footer className="site-footer">
-      <div className="container footer-grid">
+      <div className={`container footer-grid${hasContactContent ? "" : " footer-grid-no-contact"}`}>
         <div className="surface footer-brand-card">
           <div className="brand">
             <Image
@@ -24,17 +35,19 @@ export async function Footer() {
             />
             <div>
               <strong>{settings.brandName}</strong>
-              <span>{settings.brandTagline}</span>
+              {settings.brandTagline ? <span>{settings.brandTagline}</span> : null}
             </div>
           </div>
-          <p className="muted">{settings.footer.description}</p>
-          <div className="chip-row">
-            {settings.trustBadges.map((item) => (
-              <span className="chip" key={item}>
-                {item}
-              </span>
-            ))}
-          </div>
+          {settings.footer.description ? <p className="muted">{settings.footer.description}</p> : null}
+          {settings.trustBadges.length > 0 ? (
+            <div className="chip-row">
+              {settings.trustBadges.map((item) => (
+                <span className="chip" key={item}>
+                  {item}
+                </span>
+              ))}
+            </div>
+          ) : null}
         </div>
 
         <div className="surface footer-card">
@@ -65,23 +78,32 @@ export async function Footer() {
           </div>
         </div>
 
-        <div className="surface footer-card">
-          <h3>تماس و پشتیبانی</h3>
-          <div className="footer-links">
-            <a href={settings.socials.telegram} target="_blank" rel="noreferrer">
-              تلگرام
-            </a>
-            <a href={settings.socials.instagram} target="_blank" rel="noreferrer">
-              اینستاگرام
-            </a>
-            <a href={settings.socials.whatsapp} target="_blank" rel="noreferrer">
-              واتساپ
-            </a>
-            <a href={`mailto:${settings.support.email}`}>{settings.support.email}</a>
-            <span>{settings.support.phone}</span>
-            <span>{settings.support.address}</span>
+        {hasContactContent ? (
+          <div className="surface footer-card">
+            <h3>تماس و پشتیبانی</h3>
+            <div className="footer-links">
+              {contactItems.map((item) =>
+                isExternalHref(item.href) ? (
+                  <a
+                    key={`${item.label}-${item.href}`}
+                    href={item.href}
+                    target={/^https?:\/\//i.test(item.href) ? "_blank" : undefined}
+                    rel={/^https?:\/\//i.test(item.href) ? "noreferrer" : undefined}
+                  >
+                    {item.label}
+                  </a>
+                ) : (
+                  <Link key={`${item.label}-${item.href}`} href={item.href}>
+                    {item.label}
+                  </Link>
+                )
+              )}
+              {contactTextItems.map((item) => (
+                <span key={item}>{item}</span>
+              ))}
+            </div>
           </div>
-        </div>
+        ) : null}
       </div>
 
       <div className="container footer-bottom">

@@ -84,6 +84,10 @@ function warnInternalProductFallback(error: unknown) {
   console.warn("Falling back to Contentful/local products because internal products failed:", error);
 }
 
+function isProductionBuildPhase() {
+  return process.env.NEXT_PHASE === "phase-production-build";
+}
+
 function mergeInternalProducts(baseProducts: Product[], internalProducts: Awaited<ReturnType<typeof listInternalProducts>>) {
   const bySlug = new Map(baseProducts.map((product) => [product.slug, product]));
 
@@ -172,7 +176,7 @@ export const getStoreProducts = cache(async () => {
     }
   })();
 
-  if (!isInternalProductsEnabled()) {
+  if (!isInternalProductsEnabled() || isProductionBuildPhase()) {
     return sourceProducts;
   }
 

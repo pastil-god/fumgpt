@@ -101,7 +101,7 @@ export async function Header() {
             />
             <div className="brand-copy">
               <strong>{settings.brandName}</strong>
-              <span>{settings.brandTagline}</span>
+              {settings.brandTagline ? <span>{settings.brandTagline}</span> : null}
             </div>
           </Link>
 
